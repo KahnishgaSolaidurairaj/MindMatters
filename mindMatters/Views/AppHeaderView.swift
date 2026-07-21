@@ -13,11 +13,7 @@ struct AppHeaderView: View {
 
             Spacer()
 
-            MindMattersLogoView(size: 32)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            MindMattersLogoView(size: 44)
 
             Spacer()
 

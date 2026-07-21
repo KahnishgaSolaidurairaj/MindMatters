@@ -35,15 +35,12 @@ struct InviteRelationshipView: View {
                             .foregroundStyle(primaryTeal)
 
                         Text("Invite a Connection")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(Theme.pageTitle)
                             .foregroundStyle(darkText)
 
-                        Text(
-                            "Invite your new partner, a friend, a family member, or another important person to grow alongside you."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        Text("Invite a partner, friend, or family member to grow with you.")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     }
@@ -54,13 +51,14 @@ struct InviteRelationshipView: View {
                             "Send an Invitation",
                             systemImage: "envelope.fill"
                         )
-                        .font(.headline)
+                        .font(Theme.rowTitle)
                         .foregroundStyle(darkText)
 
                         TextField(
                             "Email Address",
                             text: $personEmail
                         )
+                        .font(Theme.bodyText)
                         #if os(iOS)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
@@ -80,7 +78,7 @@ struct InviteRelationshipView: View {
                             }
                         } label: {
                             Text("Send Invitation")
-                                .fontWeight(.semibold)
+                                .font(Theme.buttonText)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                                 .background(primaryTeal)
@@ -98,7 +96,7 @@ struct InviteRelationshipView: View {
                                 systemImage: "checkmark.circle.fill"
                             )
                             .foregroundStyle(primaryTeal)
-                            .fontWeight(.semibold)
+                            .font(Theme.bodyText.weight(.semibold))
                             .frame(maxWidth: .infinity)
                         }
                     }
@@ -113,8 +111,7 @@ struct InviteRelationshipView: View {
                             .environmentObject(appState)
                     } label: {
                         Text("Continue")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(Theme.buttonText)
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(primaryTeal)

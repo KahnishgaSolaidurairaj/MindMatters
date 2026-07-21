@@ -16,11 +16,11 @@ struct ResourcesHubView: View {
 
                 VStack(spacing: 20) {
                     Text("On Campus Resources")
-                        .font(.title2.bold())
+                        .font(Theme.sectionTitle)
                         .foregroundColor(Theme.textDark)
                     Text("University of Illinois at Chicago")
-                        .font(.subheadline)
-                        .foregroundColor(Theme.textDark.opacity(0.6))
+                        .font(Theme.bodyText)
+                        .foregroundColor(Theme.textDark.opacity(0.75))
 
                     VStack(spacing: 16) {
                         ResourceOptionCard(
@@ -81,11 +81,11 @@ struct ResourceOptionCard: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.headline)
+                        .font(Theme.rowTitle)
                         .foregroundColor(Theme.textDark)
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(Theme.textDark.opacity(0.6))
+                        .font(Theme.bodyText)
+                        .foregroundColor(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.leading)
                 }
                 Spacer()
@@ -112,20 +112,20 @@ struct ResourceListView: View {
                     ForEach(resources) { resource in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(resource.title)
-                                .font(.headline)
+                                .font(Theme.rowTitle)
                                 .foregroundColor(Theme.textDark)
                             Text(resource.detail)
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textDark.opacity(0.7))
+                                .font(Theme.bodyText)
+                                .foregroundColor(Theme.textDark.opacity(0.75))
 
                             if let phone = resource.phone {
                                 Label(phone, systemImage: "phone.fill")
-                                    .font(.caption)
+                                    .font(Theme.bodyText)
                                     .foregroundColor(Theme.teal)
                             }
                             if let location = resource.location {
                                 Label(location, systemImage: "mappin.and.ellipse")
-                                    .font(.caption)
+                                    .font(Theme.bodyText)
                                     .foregroundColor(Theme.teal)
                             }
                         }

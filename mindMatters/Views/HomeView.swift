@@ -9,59 +9,21 @@ struct HomeView: View {
     @EnvironmentObject var appState: AppState
     @State private var showPlantDetails = false
 
-    private let backgroundCream = Theme.background
     private let primaryTeal = Theme.teal
     private let darkText = Theme.textDark
 
     var body: some View {
         ZStack {
-            backgroundCream
-                .ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 24) {
                         topBar
-                        gardenSection
+                        plantOfTheWeekSection
                         tasksSection
-
-                        if appState.hasConnection {
-                            NavigationLink {
-                                ConnectionGreenhouseView(connectionName: appState.connectionName)
-                            } label: {
-                                Label(
-                                    "Visit \(appState.connectionName)'s Greenhouse",
-                                    systemImage: "person.2.fill"
-                                )
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(primaryTeal)
-                                .foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                            }
-                        } else {
-                            NavigationLink {
-                                RelationshipCheckInView()
-                            } label: {
-                                Label(
-                                    "Add a Connection",
-                                    systemImage: "person.badge.plus"
-                                )
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white.opacity(0.9))
-                                .foregroundStyle(primaryTeal)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(primaryTeal.opacity(0.35), lineWidth: 1)
-                                )
-                            }
-                        }
+                        gardenSection
+                        connectionSection
                     }
                     .padding()
                     .padding(.bottom, 100)
@@ -70,8 +32,7 @@ struct HomeView: View {
                 BottomStatusBar(
                     streak: appState.currentStreak,
                     energy: appState.energyPoints,
-                    onEndDay: { appState.endDay() },
-                    onResourcesTap: { appState.showResources = true }
+                    onEndDay: { appState.endDay() }
                 )
                 .padding(.bottom, 12)
             }
@@ -79,6 +40,11 @@ struct HomeView: View {
         .navigationBarBackButtonHidden()
         .sheet(isPresented: $showPlantDetails) {
             PlantOverviewView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $appState.showPriorityBreakdown) {
+            PlantOverviewView()
+                .environmentObject(appState)
         }
         .sheet(isPresented: $appState.showAppMenu) {
             AppMenuView()
@@ -93,6 +59,10 @@ struct HomeView: View {
         .sheet(isPresented: $appState.streakBroken) {
             StreakBrokenView().environmentObject(appState)
         }
+        .sheet(isPresented: $appState.showWeeklyPlantPicker) {
+            ChoosePlantView(isReplacingWeeklyPlant: true)
+                .environmentObject(appState)
+        }
     }
 
     private var topBar: some View {
@@ -105,14 +75,11 @@ struct HomeView: View {
                     .foregroundStyle(primaryTeal)
                     .padding(8)
             }
+            .accessibilityLabel("Open menu")
 
             Spacer()
 
-            MindMattersLogoView(size: 36)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            MindMattersLogoView(size: 52)
 
             Spacer()
 
@@ -123,76 +90,74 @@ struct HomeView: View {
                     .font(.system(size: 34))
                     .foregroundStyle(primaryTeal)
             }
+            .accessibilityLabel("Open profile menu")
         }
     }
 
-    private var gardenSection: some View {
+    private var plantOfTheWeekSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Your Garden", systemImage: "leaf.circle.fill")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(primaryTeal)
+            sectionHeader("Plant of the Week", icon: "flame.fill")
 
-            Button {
-                showPlantDetails = true
-            } label: {
-                VStack(spacing: 14) {
-                    ZStack(alignment: .bottom) {
-                        Image(GardenCatalog.backgroundAssets[0])
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 245)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
+            VStack(spacing: 14) {
+                PlantImageView(
+                    kind: appState.selectedPlantKind,
+                    stage: appState.plantOfTheWeekStage,
+                    isWilted: appState.isStreakPlantWilted,
+                    height: 140
+                )
 
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white.opacity(0.12))
+                HStack {
+                    Text(appState.selectedPlantKind.displayName)
+                        .font(Theme.rowTitle)
+                        .foregroundStyle(darkText)
 
-                        VStack(spacing: 6) {
-                            HStack(alignment: .bottom, spacing: 8) {
-                                ForEach(GardenCatalog.plants) { plant in
-                                    PottedPlantView(
-                                        kind: plant.kind,
-                                        stage: plant.stage,
-                                        potAssetName: plant.potAssetName,
-                                        plantHeight: 52,
-                                        potHeight: 24
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .padding(.horizontal, 10)
+                    Spacer()
 
-                            Image("my_plants_asset-08")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 28)
-                                .padding(.horizontal, 28)
-                        }
-                        .padding(.bottom, 16)
+                    Text("\(appState.currentStreak) day streak")
+                        .font(Theme.bodyText.weight(.semibold))
+                        .foregroundStyle(primaryTeal)
+                }
+
+                if appState.currentWeeklyPlantDay > 0 {
+                    Text("Day \(appState.currentWeeklyPlantDay) with this plant")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Text("Finish all daily tasks to grow your streak. Each new plant starts at day 1 on your next streak day.")
+                    .font(Theme.supportingText)
+                    .foregroundStyle(Theme.textDark.opacity(0.75))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if appState.canPickNewWeeklyPlant {
+                    Button {
+                        appState.beginWeeklyPlantReplacement()
+                    } label: {
+                        Label("Pick a New Weekly Plant", systemImage: "leaf.circle")
+                            .font(Theme.buttonText)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(primaryTeal)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .frame(height: 245)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-
-                    Text("Tap the garden to view all plants and progress")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textDark.opacity(0.6))
                 }
             }
-            .buttonStyle(.plain)
+            .padding()
+            .background(Color.white.opacity(0.92))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
 
     private var tasksSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Today's Tasks", systemImage: "checkmark.circle.fill")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(primaryTeal)
+            sectionHeader("Today's Tasks", icon: "checkmark.circle.fill")
 
             if appState.dailyActivities.isEmpty {
-                Text("Complete your intake to receive personalized tasks.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textDark.opacity(0.6))
+                Text("Finish intake to get your daily tasks.")
+                    .font(Theme.bodyText)
+                    .foregroundStyle(Theme.textDark.opacity(0.75))
             } else {
                 ForEach(appState.dailyActivities) { task in
                     taskRow(task: task)
@@ -201,42 +166,120 @@ struct HomeView: View {
         }
     }
 
+    private var gardenSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionHeader("Your Garden", icon: "leaf.circle.fill")
+
+            Button {
+                showPlantDetails = true
+            } label: {
+                VStack(spacing: 12) {
+                    HStack(alignment: .bottom, spacing: 6) {
+                        ForEach(appState.gardenProfiles) { plant in
+                            PottedPlantView(
+                                kind: plant.kind,
+                                stage: plant.stage,
+                                potAssetName: plant.potAssetName,
+                                plantHeight: 105,
+                                potHeight: 46
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 24)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white.opacity(0.92))
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                    Text("Tap to view your priority breakdown.")
+                        .font(Theme.supportingText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var connectionSection: some View {
+        if appState.hasConnection {
+            NavigationLink {
+                ConnectionGreenhouseView(connectionName: appState.connectionName)
+            } label: {
+                Label(
+                    "Visit \(appState.connectionName)'s Greenhouse",
+                    systemImage: "person.2.fill"
+                )
+                .font(Theme.buttonText)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(primaryTeal)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+        } else {
+            NavigationLink {
+                RelationshipCheckInView()
+            } label: {
+                Label("Add a Connection", systemImage: "person.badge.plus")
+                    .font(Theme.buttonText)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white.opacity(0.92))
+                    .foregroundStyle(primaryTeal)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(primaryTeal.opacity(0.35), lineWidth: 1)
+                    )
+            }
+        }
+    }
+
+    private func sectionHeader(_ title: String, icon: String) -> some View {
+        Label(title, systemImage: icon)
+            .font(Theme.sectionTitle)
+            .foregroundStyle(primaryTeal)
+    }
+
     private func taskRow(task: TaskItem) -> some View {
         let isDone = appState.completedTaskIDs.contains(task.id)
 
         return Button {
             appState.toggleComplete(task)
         } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(task.category.tint.opacity(0.15))
-                        .frame(width: 46, height: 46)
+                        .frame(width: 50, height: 50)
 
                     Image(systemName: task.category.symbol)
-                        .font(.title3)
+                        .font(.title2)
                         .foregroundStyle(task.category.tint)
                 }
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(task.title)
-                        .fontWeight(.semibold)
+                        .font(Theme.rowTitle)
                         .foregroundStyle(darkText)
+                        .multilineTextAlignment(.leading)
                         .strikethrough(isDone)
 
-                    Text(task.category.rawValue)
-                        .font(.caption)
-                        .foregroundStyle(Theme.textDark.opacity(0.6))
+                    Text(task.category.priorityLabel)
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                 }
 
                 Spacer()
 
                 Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
+                    .font(.title2)
                     .foregroundStyle(isDone ? primaryTeal : primaryTeal.opacity(0.5))
             }
             .padding()
-            .background(Color.white.opacity(0.9))
+            .background(Color.white.opacity(0.92))
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
@@ -246,30 +289,30 @@ struct HomeView: View {
 // MARK: - Plant Overview
 
 struct PlantOverviewView: View {
+    @EnvironmentObject var appState: AppState
+
     private let primaryTeal = Theme.teal
     private let darkText = Theme.textDark
 
     var body: some View {
         ZStack {
-            Theme.background
-                .ignoresSafeArea()
+            Theme.background.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 16) {
-                    MindMattersLogoView(size: 48)
+                VStack(spacing: 20) {
+                    MindMattersLogoView(size: 64)
 
                     Text("Your Plant Priorities")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                        .font(Theme.pageTitle)
                         .foregroundStyle(darkText)
                         .multilineTextAlignment(.center)
 
-                    Text("Each plant represents a different area of your wellbeing.")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.textDark.opacity(0.6))
+                    Text("Percentages show where your completed tasks are focused.")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.center)
 
-                    ForEach(GardenCatalog.plants) { plant in
+                    ForEach(appState.gardenProfiles) { plant in
                         plantRow(profile: plant)
                     }
                 }
@@ -291,20 +334,20 @@ struct PlantOverviewView: View {
                 )
                 .frame(width: 56)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(profile.name)
-                        .fontWeight(.semibold)
+                        .font(Theme.rowTitle)
                         .foregroundStyle(darkText)
 
                     Text(profile.category)
-                        .font(.caption)
-                        .foregroundStyle(Theme.textDark.opacity(0.6))
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                 }
 
                 Spacer()
 
                 Text("\(profile.progress)%")
-                    .fontWeight(.bold)
+                    .font(Theme.rowTitle)
                     .foregroundStyle(primaryTeal)
             }
 
@@ -312,7 +355,7 @@ struct PlantOverviewView: View {
                 .tint(primaryTeal)
         }
         .padding()
-        .background(Color.white.opacity(0.9))
+        .background(Color.white.opacity(0.92))
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

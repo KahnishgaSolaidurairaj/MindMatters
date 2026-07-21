@@ -2,10 +2,9 @@ import SwiftUI
 
 struct MindMattersLogoView: View {
     var size: CGFloat = 44
-    var useCompactVariant: Bool = false
 
     var body: some View {
-        Image(useCompactVariant ? MindMattersAssets.logoCompact : MindMattersAssets.logo)
+        Image(MindMattersAssets.logo)
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)

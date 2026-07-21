@@ -5,10 +5,10 @@ struct TutorialView: View {
     @State private var pageIndex = 0
 
     private let pages: [(icon: String, title: String, body: String)] = [
-        ("checklist", "Daily Activities", "Every day you'll get 3 small tasks across social, academic, financial, and mental health categories."),
-        ("leaf.fill", "Your Plant", "Complete tasks to water, give sunlight, and fertilize your plant. Skip too many days and it'll wilt."),
-        ("slider.horizontal.3", "Made For You", "Your intake form tells us what feels comfortable, so suggestions match your style — introverted or extroverted."),
-        ("checkmark.circle.fill", "Check Things Off", "Mark tasks complete as you go. Small, 5-10 minute wins add up."),
+        ("checklist", "Daily Tasks", "Get 3 short tasks each day across social, academic, financial, and wellness areas."),
+        ("flame.fill", "Plant of the Week", "Your weekly plant grows one stage for each day you finish your streak."),
+        ("leaf.circle.fill", "Your Garden", "Four priority plants show where your completed tasks are focused."),
+        ("checkmark.circle.fill", "Check Them Off", "Mark tasks done as you go. Small wins add up."),
     ]
 
     var body: some View {
@@ -17,7 +17,7 @@ struct TutorialView: View {
 
             VStack {
                 Text("Welcome, \(appState.userName)!")
-                    .font(.title2.bold())
+                    .font(Theme.sectionTitle)
                     .foregroundColor(Theme.textDark)
                     .padding(.top)
 
@@ -34,11 +34,12 @@ struct TutorialView: View {
                                 .clipShape(Circle())
 
                             Text(pages[index].title)
-                                .font(.title3.bold())
+                                .font(Theme.rowTitle)
                                 .foregroundColor(Theme.textDark)
                             Text(pages[index].body)
+                                .font(Theme.bodyText)
                                 .multilineTextAlignment(.center)
-                                .foregroundColor(Theme.textDark.opacity(0.7))
+                                .foregroundColor(Theme.textDark.opacity(0.8))
                                 .padding(.horizontal, 30)
                         }
                         .tag(index)
@@ -56,7 +57,7 @@ struct TutorialView: View {
                         pageIndex += 1
                     }
                 }
-                .font(.headline)
+                .font(Theme.buttonText)
                 .foregroundColor(.white)
                 .padding(.horizontal, 32)
                 .padding(.vertical, 12)

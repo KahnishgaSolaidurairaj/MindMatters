@@ -15,8 +15,8 @@ struct ActivityListView: View {
                     VStack(spacing: 18) {
                         ActivePlantCard(
                             kind: appState.selectedPlantKind,
-                            stage: appState.plant.stage,
-                            isWilted: appState.plant.isWilted
+                            stage: appState.streakPlantStage,
+                            isWilted: appState.isStreakPlantWilted
                         )
                             .padding(.horizontal)
                             .padding(.top, 12)
@@ -25,7 +25,7 @@ struct ActivityListView: View {
                             Image(systemName: "arrow.right.circle.fill")
                                 .foregroundColor(Theme.teal)
                             Text("Today's Activities:")
-                                .font(.headline)
+                                .font(Theme.sectionTitle)
                                 .foregroundColor(Theme.teal)
                             Spacer()
                         }
@@ -48,8 +48,6 @@ struct ActivityListView: View {
 
                 BottomStatusBar(streak: appState.currentStreak, energy: appState.energyPoints) {
                     appState.endDay()
-                } onResourcesTap: {
-                    appState.showResources = true
                 }
                 .padding(.bottom, 12)
             }

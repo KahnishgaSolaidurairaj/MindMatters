@@ -18,27 +18,29 @@ struct IntakeFormView: View {
                     .padding(.horizontal)
 
                 Text("Quick Intake")
-                    .font(.title2.bold())
+                    .font(Theme.sectionTitle)
                     .foregroundColor(Theme.textDark)
-                Text("Would you enjoy doing this kind of task?")
-                    .foregroundColor(Theme.textDark.opacity(0.7))
+                Text("Would you enjoy this kind of task?")
+                    .font(Theme.bodyText)
+                    .foregroundColor(Theme.textDark.opacity(0.8))
 
                 if index < queue.count {
                     let task = queue[index]
                     VStack(spacing: 12) {
                         Label(task.category.rawValue, systemImage: task.category.symbol)
-                            .font(.caption.bold())
+                            .font(Theme.bodyText.weight(.semibold))
                             .padding(6)
                             .background(Theme.sage.opacity(0.2))
                             .foregroundColor(Theme.teal)
                             .clipShape(Capsule())
 
                         Text(task.title)
-                            .font(.title3.bold())
+                            .font(Theme.rowTitle)
                             .foregroundColor(Theme.textDark)
                             .multilineTextAlignment(.center)
                         Text(task.detail)
-                            .foregroundColor(Theme.textDark.opacity(0.7))
+                            .font(Theme.bodyText)
+                            .foregroundColor(Theme.textDark.opacity(0.8))
                             .multilineTextAlignment(.center)
                     }
                     .padding()
@@ -73,7 +75,7 @@ struct IntakeFormView: View {
                     .padding(.horizontal)
                 } else {
                     Text("All set!")
-                        .font(.headline)
+                        .font(Theme.rowTitle)
                         .foregroundColor(Theme.textDark)
                 }
 

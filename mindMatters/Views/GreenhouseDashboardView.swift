@@ -16,11 +16,11 @@ struct GreenhouseDashboardView: View {
                     .foregroundStyle(.green)
 
                 Text("Your Greenhouse")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(Theme.pageTitle)
 
                 Text("View your growth areas and complete activities.")
-                    .foregroundStyle(.secondary)
+                    .font(Theme.bodyText)
+                    .foregroundStyle(Theme.textDark.opacity(0.75))
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: 16) {
@@ -61,15 +61,15 @@ struct PlantCardView: View {
                     .foregroundStyle(.green)
 
                 Text(title)
-                    .font(.headline)
+                    .font(Theme.rowTitle)
             }
 
             ProgressView(value: progress)
                 .tint(.green)
 
             Text("\(Int(progress * 100))% complete")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(Theme.bodyText)
+                .foregroundStyle(Theme.textDark.opacity(0.75))
         }
         .padding()
         .background(Color.green.opacity(0.1))

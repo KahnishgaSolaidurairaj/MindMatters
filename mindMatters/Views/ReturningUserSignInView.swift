@@ -4,29 +4,22 @@ struct ReturningUserSignInView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.89, green: 0.88, blue: 0.82)
+                Theme.background
                     .ignoresSafeArea()
 
                 VStack(spacing: 24) {
                     Spacer()
 
-                    Image(MindMattersAssets.logo)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 80, height: 80)
+                    MindMattersLogoView(size: 240)
 
                     Text("Mind Matters")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundStyle(
-                            Color(red: 0.20, green: 0.26, blue: 0.24)
-                        )
+                        .font(Theme.pageTitle)
+                        .foregroundStyle(Theme.textDark)
 
                     Text("Grow independently while staying connected.")
+                        .font(Theme.bodyText)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(
-                            Color(red: 0.35, green: 0.45, blue: 0.43)
-                        )
+                        .foregroundStyle(Theme.textDark.opacity(0.8))
 
                     NavigationLink {
                         RelationshipCheckInView()
@@ -35,7 +28,7 @@ struct ReturningUserSignInView: View {
                             Image(systemName: "apple.logo")
 
                             Text("Sign in with Apple")
-                                .fontWeight(.semibold)
+                                .font(Theme.buttonText)
                         }
                         .frame(maxWidth: .infinity)
                         .padding()

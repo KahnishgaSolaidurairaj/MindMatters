@@ -37,8 +37,7 @@ struct ConnectionGreenhouseView: View {
             Spacer()
 
             Text("\(connectionName)'s Greenhouse")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(Theme.sectionTitle)
                 .foregroundStyle(Theme.textDark)
 
             Spacer()
@@ -48,8 +47,8 @@ struct ConnectionGreenhouseView: View {
                     .fill(.green)
                     .frame(width: 10, height: 10)
                 Text("Online")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.textDark.opacity(0.7))
+                    .font(Theme.bodyText)
+                    .foregroundStyle(Theme.textDark.opacity(0.75))
             }
         }
     }
@@ -57,19 +56,19 @@ struct ConnectionGreenhouseView: View {
     private var greenhouseCard: some View {
         VStack(spacing: 16) {
             Text("New Growth")
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(Theme.rowTitle)
                 .foregroundStyle(Theme.teal)
 
             PlantImageView(kind: .sunflower, stage: .sprout, height: 110)
 
             Text("Sapling")
-                .font(.headline)
+                .font(Theme.rowTitle)
                 .foregroundStyle(Theme.textDark)
 
-            Text("\(connectionName) is just beginning their growth journey.")
+            Text("\(connectionName) is starting their growth journey.")
+                .font(Theme.bodyText)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Theme.textDark.opacity(0.6))
+                .foregroundStyle(Theme.textDark.opacity(0.75))
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -81,11 +80,11 @@ struct ConnectionGreenhouseView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Growth Streak", systemImage: "flame.fill")
-                    .font(.headline)
+                    .font(Theme.rowTitle)
                     .foregroundStyle(Theme.textDark)
                 Spacer()
                 Text("\(currentStreak)/\(requiredStreak) days")
-                    .fontWeight(.semibold)
+                    .font(Theme.bodyText.weight(.semibold))
                     .foregroundStyle(Theme.textDark)
             }
 
@@ -95,10 +94,10 @@ struct ConnectionGreenhouseView: View {
             Text(
                 currentStreak >= requiredStreak
                 ? "CO-OP mode is unlocked."
-                : "CO-OP mode unlocks after a 5-day growth streak."
+                : "CO-OP unlocks after a 5-day growth streak."
             )
-            .font(.footnote)
-            .foregroundStyle(Theme.textDark.opacity(0.6))
+            .font(Theme.bodyText)
+            .foregroundStyle(Theme.textDark.opacity(0.75))
         }
         .padding()
         .background(Theme.sage.opacity(0.28))
@@ -110,7 +109,7 @@ struct ConnectionGreenhouseView: View {
             EncouragementNoteView()
         } label: {
             Label("Leave Encouragement", systemImage: "envelope.fill")
-                .fontWeight(.semibold)
+                .font(Theme.buttonText)
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Theme.teal)

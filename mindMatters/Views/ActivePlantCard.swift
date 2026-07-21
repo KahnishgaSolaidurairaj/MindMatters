@@ -8,13 +8,13 @@ struct ActivePlantCard: View {
     var body: some View {
         VStack(spacing: 10) {
             HStack {
-                MindMattersLogoView(size: 28, useCompactVariant: true)
-                Text("Your Active Plant")
-                    .font(.headline)
+                MindMattersLogoView(size: 36)
+                Text("Weekly Streak Plant")
+                    .font(Theme.rowTitle)
                     .foregroundColor(Theme.teal)
                 Spacer()
                 Text(kind.displayName)
-                    .font(.subheadline)
+                    .font(Theme.bodyText.weight(.semibold))
                     .foregroundColor(Theme.textDark.opacity(0.7))
             }
 
@@ -27,7 +27,7 @@ struct ActivePlantCard: View {
             .padding(.vertical, 4)
 
             Text(stage.label)
-                .font(.caption.bold())
+                .font(Theme.bodyText.weight(.semibold))
                 .foregroundColor(Theme.teal)
         }
         .padding()

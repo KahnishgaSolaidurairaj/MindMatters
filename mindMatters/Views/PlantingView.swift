@@ -10,12 +10,16 @@ struct PlantingView: View {
 
             VStack(spacing: 24) {
                 Spacer()
-                Text(planted ? "Planted!" : "Tap the pot to plant your seed")
-                    .font(.title2.bold())
+
+                MindMattersLogoView(size: 56)
+
+                Text(planted ? "Planted!" : "Tap the pot to plant your weekly plant")
+                    .font(Theme.sectionTitle)
                     .foregroundColor(Theme.textDark)
+                    .multilineTextAlignment(.center)
 
                 ZStack(alignment: .bottom) {
-                    Image(appState.selectedPlantKind.defaultPotAssetName)
+                    Image(appState.selectedPlantKind.streakPotAssetName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 160, height: 90)
@@ -39,7 +43,7 @@ struct PlantingView: View {
                 Button("Continue") {
                     appState.confirmPlanting()
                 }
-                .font(.headline)
+                .font(Theme.buttonText)
                 .foregroundColor(.white)
                 .padding(.horizontal, 40)
                 .padding(.vertical, 12)

@@ -31,27 +31,20 @@ struct RelationshipCheckInView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     VStack(spacing: 10) {
-                        Image(MindMattersAssets.logoCompact)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 48, height: 48)
+                        MindMattersLogoView(size: 48)
 
                         Text("Update Your Check-In")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(Theme.pageTitle)
                             .foregroundStyle(darkText)
                             .multilineTextAlignment(.center)
 
                         Text("Welcome back!")
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .font(Theme.rowTitle)
                             .foregroundStyle(darkText)
 
-                        Text(
-                            "Update your relationship information so your greenhouse and activities stay personalized."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        Text("Update your relationships so your greenhouse stays personalized.")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 12)
                     }
@@ -62,14 +55,12 @@ struct RelationshipCheckInView: View {
                             "Relationship Update",
                             systemImage: "person.2.fill"
                         )
-                        .font(.headline)
+                        .font(Theme.rowTitle)
                         .foregroundStyle(darkText)
 
-                        Text(
-                            "What has changed since your last check-in?"
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        Text("What changed since your last check-in?")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
 
                         Picker(
                             "Recent Change",
@@ -96,8 +87,7 @@ struct RelationshipCheckInView: View {
                         if selectedChange != "No Recent Changes" {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Person's Name")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
+                                    .font(Theme.bodyText.weight(.semibold))
                                     .foregroundStyle(darkText)
 
                                 TextField(
@@ -116,11 +106,9 @@ struct RelationshipCheckInView: View {
                                     RoundedRectangle(cornerRadius: 14)
                                 )
 
-                                Text(
-                                    "Enter the name of the person you'd like to grow alongside."
-                                )
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                Text("Enter the name of the person you'd like to grow with.")
+                                .font(Theme.bodyText)
+                                .foregroundStyle(Theme.textDark.opacity(0.75))
                             }
                         }
                     }
@@ -135,21 +123,20 @@ struct RelationshipCheckInView: View {
                             "Other Important Relationships",
                             systemImage: "person.3.fill"
                         )
-                        .font(.headline)
+                        .font(Theme.rowTitle)
                         .foregroundStyle(darkText)
 
                         Toggle(
-                            "Consider inviting other relationships",
+                            "Invite other relationships",
                             isOn: $inviteOtherRelationships
                         )
+                        .font(Theme.bodyText)
                         .tint(primaryTeal)
 
                         if inviteOtherRelationships {
-                            Text(
-                                "You can also invite friends, family members, or another important person to join your greenhouse."
-                            )
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            Text("You can invite friends, family, or others to join your greenhouse.")
+                            .font(Theme.bodyText)
+                            .foregroundStyle(Theme.textDark.opacity(0.75))
                         }
                     }
                     .padding()
@@ -168,8 +155,7 @@ struct RelationshipCheckInView: View {
                             }
                     } label: {
                         Text("Save Check-In")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(Theme.buttonText)
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(primaryTeal)
@@ -199,11 +185,9 @@ struct RelationshipCheckInView: View {
                         : 1
                     )
 
-                    Text(
-                        "Your relationship type will not affect how the connection is valued or scored."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    Text("Relationship type does not affect how connections are valued.")
+                    .font(Theme.bodyText)
+                    .foregroundStyle(Theme.textDark.opacity(0.75))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 }

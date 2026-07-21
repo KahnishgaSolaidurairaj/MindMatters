@@ -6,27 +6,24 @@ struct EncouragementNoteView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.89, green: 0.88, blue: 0.82)
+            Theme.background
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
                 Image(systemName: "envelope.fill")
                     .font(.system(size: 70))
-                    .foregroundStyle(
-                        Color(red: 0.35, green: 0.57, blue: 0.60)
-                    )
+                    .foregroundStyle(Theme.teal)
 
                 Text("Leave Encouragement")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(Theme.pageTitle)
 
-                Text(
-                    "Write a supportive note for their potting shed."
-                )
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                Text("Write a supportive note for their potting shed.")
+                    .font(Theme.bodyText)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Theme.textDark.opacity(0.8))
 
                 TextEditor(text: $note)
+                    .font(Theme.bodyText)
                     .frame(height: 160)
                     .padding(8)
                     .background(Color.white.opacity(0.9))
@@ -35,12 +32,10 @@ struct EncouragementNoteView: View {
                 Button("Send Note") {
                     noteSent = true
                 }
-                .fontWeight(.semibold)
+                .font(Theme.buttonText)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(
-                    Color(red: 0.35, green: 0.57, blue: 0.60)
-                )
+                .background(Theme.teal)
                 .foregroundStyle(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .disabled(note.trimmingCharacters(
@@ -52,6 +47,7 @@ struct EncouragementNoteView: View {
                         "Your note was added to the potting shed.",
                         systemImage: "checkmark.circle.fill"
                     )
+                    .font(Theme.bodyText)
                     .foregroundStyle(.green)
                 }
 

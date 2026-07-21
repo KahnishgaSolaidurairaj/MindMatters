@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ChoosePlantView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    var isReplacingWeeklyPlant: Bool = false
     @State private var selectedKind: PlantKind = .sunflower
 
     private let columns = [
@@ -15,19 +17,20 @@ struct ChoosePlantView: View {
 
             ScrollView {
                 VStack(spacing: 24) {
-                    Image(MindMattersAssets.myPlantsBanner)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: 220)
-                        .padding(.top, 12)
+                    MindMattersLogoView(size: 64)
+                        .padding(.top, 16)
 
-                    Text("Choose Your Plant")
-                        .font(.title.bold())
+                    Text(isReplacingWeeklyPlant ? "Pick Your Next Weekly Plant" : "Choose Your Weekly Plant")
+                        .font(Theme.pageTitle)
                         .foregroundColor(Theme.textDark)
 
-                    Text("Pick a plant that will grow with your daily activities. You can always change it later from your garden.")
-                        .font(.subheadline)
-                        .foregroundColor(Theme.textDark.opacity(0.7))
+                    Text(
+                        isReplacingWeeklyPlant
+                        ? "Start fresh with a new plant for this week."
+                        : "This plant grows one stage for each day you complete your streak."
+                    )
+                        .font(Theme.bodyText)
+                        .foregroundColor(Theme.textDark.opacity(0.8))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
 
@@ -38,10 +41,15 @@ struct ChoosePlantView: View {
                     }
                     .padding(.horizontal)
 
-                    Button("Continue with \(selectedKind.displayName)") {
-                        appState.selectPlant(selectedKind)
+                    Button(isReplacingWeeklyPlant ? "Start \(selectedKind.displayName) This Week" : "Grow \(selectedKind.displayName) This Week") {
+                        if isReplacingWeeklyPlant {
+                            appState.replaceWeeklyPlant(with: selectedKind)
+                            dismiss()
+                        } else {
+                            appState.selectPlant(selectedKind)
+                        }
                     }
-                    .font(.headline)
+                    .font(Theme.buttonText)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -64,17 +72,17 @@ struct ChoosePlantView: View {
                 PlantImageView(kind: kind, stage: .medium, height: 90)
 
                 Text(kind.displayName)
-                    .font(.headline)
+                    .font(Theme.rowTitle)
                     .foregroundColor(Theme.textDark)
 
-                Text(kind.description)
-                    .font(.caption)
-                    .foregroundColor(Theme.textDark.opacity(0.65))
+                Text(kind.weeklyStreakDescription)
+                    .font(Theme.bodyText)
+                    .foregroundColor(Theme.textDark.opacity(0.75))
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
             }
             .padding()
-            .frame(maxWidth: .infinity, minHeight: 210)
+            .frame(maxWidth: .infinity, minHeight: 200)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .overlay(

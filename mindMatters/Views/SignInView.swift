@@ -11,19 +11,20 @@ struct SignInView: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
 
-                VStack(spacing: 24) {
+                VStack(spacing: 28) {
                     Spacer()
 
-                    MindMattersLogoView(size: 120)
-                        .padding(20)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                    MindMattersLogoView(size: 360)
 
-                    Text("Small daily wins for your mind, body, and wallet.")
-                        .font(.subheadline)
-                        .foregroundColor(Theme.textDark.opacity(0.7))
+                    Text("Mind Matters")
+                        .font(Theme.pageTitle)
+                        .foregroundColor(Theme.textDark)
+
+                    Text("Daily wins for your mind, body, and wallet.")
+                        .font(Theme.bodyText)
+                        .foregroundColor(Theme.textDark.opacity(0.8))
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
+                        .padding(.horizontal, 32)
 
                     Spacer()
 
@@ -43,28 +44,28 @@ struct SignInView: View {
                         }
                     })
                     .signInWithAppleButtonStyle(.whiteOutline)
-                    .frame(height: 50)
+                    .frame(height: 54)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 32)
 
-                    VStack(spacing: 8) {
-                        TextField("Your name (prototype only)", text: $fallbackName)
+                    VStack(spacing: 12) {
+                        TextField("Your name", text: $fallbackName)
+                            .font(Theme.bodyText)
                             .textFieldStyle(.roundedBorder)
-                            .padding(.horizontal, 40)
+                            .padding(.horizontal, 32)
+
                         Button("Continue without Apple Sign-In") {
                             appState.signIn(name: fallbackName)
                         }
-                        .font(.footnote)
+                        .font(Theme.linkText)
                         .foregroundColor(Theme.teal)
                     }
-                    .padding(.top, 8)
 
                     Button("Browse campus resources") {
                         showResources = true
                     }
-                    .font(.footnote)
+                    .font(Theme.linkText)
                     .foregroundColor(Theme.teal)
-                    .padding(.top, 8)
 
                     Spacer()
                 }

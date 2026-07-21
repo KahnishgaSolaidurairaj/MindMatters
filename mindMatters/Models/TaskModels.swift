@@ -25,6 +25,11 @@ enum TaskCategory: String, CaseIterable, Identifiable {
         case .mentalHealth: return .purple
         }
     }
+
+    /// Label shown in task lists and matched to garden priority pots.
+    var priorityLabel: String {
+        GardenPriority.from(taskCategory: self).rawValue
+    }
 }
 
 enum SocialStyle: String {

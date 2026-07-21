@@ -9,13 +9,16 @@ struct SeedGivenView: View {
 
             VStack(spacing: 24) {
                 Spacer()
-                Text("Here's your \(appState.selectedPlantKind.displayName) Seed")
-                    .font(.title.bold())
+
+                MindMattersLogoView(size: 56)
+
+                Text("Your Weekly \(appState.selectedPlantKind.displayName)")
+                    .font(Theme.sectionTitle)
                     .foregroundColor(Theme.textDark)
                     .multilineTextAlignment(.center)
 
                 ZStack(alignment: .bottom) {
-                    Image(appState.selectedPlantKind.defaultPotAssetName)
+                    Image(appState.selectedPlantKind.streakPotAssetName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 120, height: 70)
@@ -28,11 +31,12 @@ struct SeedGivenView: View {
                     .offset(y: -36)
                 }
                 .padding(24)
-                .background(Color.white)
+                .background(Color.white.opacity(0.92))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
 
-                Text("This \(appState.selectedPlantKind.displayName.lowercased()) grows alongside your daily habits. Water it, give it sunlight, and fertilize it by completing your activities.")
-                    .foregroundColor(Theme.textDark.opacity(0.7))
+                Text("This plant grows one stage for each day you complete your streak.")
+                    .font(Theme.bodyText)
+                    .foregroundColor(Theme.textDark.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
 
@@ -41,7 +45,7 @@ struct SeedGivenView: View {
                 Button("Plant It") {
                     appState.plantSeed()
                 }
-                .font(.headline)
+                .font(Theme.buttonText)
                 .foregroundColor(.white)
                 .padding(.horizontal, 40)
                 .padding(.vertical, 12)

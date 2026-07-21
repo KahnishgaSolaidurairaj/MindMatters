@@ -15,7 +15,7 @@ struct ActivityPillRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 Text(task.title)
-                    .font(.subheadline.bold())
+                    .font(Theme.rowTitle)
                     .foregroundColor(.white)
                     .strikethrough(isDone)
 

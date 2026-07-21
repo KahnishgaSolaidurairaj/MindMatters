@@ -25,15 +25,12 @@ struct CoOpSetupView: View {
                             .foregroundStyle(Theme.teal)
 
                         Text("CO-OP Setup")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(Theme.pageTitle)
                             .foregroundStyle(Theme.textDark)
 
-                        Text(
-                            "Choose how you and your connection would like to grow together while continuing your individual activities."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.textDark.opacity(0.6))
+                        Text("Choose how you and your connection grow together.")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     }
@@ -41,17 +38,16 @@ struct CoOpSetupView: View {
 
                     VStack(alignment: .leading, spacing: 16) {
                         Label("Work Together", systemImage: "leaf.fill")
-                            .font(.headline)
+                            .font(Theme.rowTitle)
                             .foregroundStyle(Theme.textDark)
 
                         Toggle("Participate in CO-OP activities", isOn: $workTogether)
+                            .font(Theme.bodyText)
                             .tint(Theme.teal)
 
-                        Text(
-                            "CO-OP activities let you contribute toward shared goals without affecting your individual plant growth."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.textDark.opacity(0.6))
+                        Text("CO-OP activities support shared goals without changing your individual plants.")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
                     }
                     .padding()
                     .background(Color.white.opacity(0.9))
@@ -60,16 +56,19 @@ struct CoOpSetupView: View {
                     if workTogether {
                         VStack(alignment: .leading, spacing: 18) {
                             Label("Privacy and Sharing", systemImage: "lock.shield.fill")
-                                .font(.headline)
+                                .font(Theme.rowTitle)
                                 .foregroundStyle(Theme.textDark)
 
                             Toggle("Share Greenhouse Progress", isOn: $shareGreenhouseProgress)
+                                .font(Theme.bodyText)
                                 .tint(Theme.teal)
                             Divider()
                             Toggle("Show Online Status", isOn: $showOnlineStatus)
+                                .font(Theme.bodyText)
                                 .tint(Theme.teal)
                             Divider()
                             Toggle("Allow Shared Activities", isOn: $allowSharedActivities)
+                                .font(Theme.bodyText)
                                 .tint(Theme.teal)
                         }
                         .padding()
@@ -85,8 +84,7 @@ struct CoOpSetupView: View {
                         appState.stage = .home
                     } label: {
                         Text("Continue to Greenhouse")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(Theme.buttonText)
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Theme.teal)
