@@ -1,0 +1,1183 @@
+//
+//  MentalHealthPlantApp.swift
+
+//  Flow: Sign in with Apple -> Guided Tutorial -> Intake Form
+//        -> Starter Seed -> Plant It -> Daily Activity List (with plant care rewards)
+//  Search for "TODO: replace with your image asset" to swap in your own
+//  plant illustrations.
+//
+
+import SwiftUI
+import AuthenticationServices
+
+// MARK: - Models
+
+enum Theme {
+    static let background = Color(red: 0.925, green: 0.909, blue: 0.851) // cream
+    static let sage = Color(red: 0.588, green: 0.678, blue: 0.616)       // activity pills
+    static let teal = Color(red: 0.431, green: 0.596, blue: 0.627)       // header / accents
+    static let cardWhite = Color.white
+    static let textDark = Color(red: 0.16, green: 0.2, blue: 0.2)
+}
+
+
+enum TaskCategory: String, CaseIterable, Identifiable {
+    case social = "Social"
+    case academic = "Academic"
+    case finance = "Finance"
+    case mentalHealth = "Mental Health"
+    
+    var id: String { rawValue }
+    
+    var symbol: String {
+        switch self {
+        case .social: return "person.2.fill"
+        case .academic: return "book.fill"
+        case .finance: return "dollarsign.circle.fill"
+        case .mentalHealth: return "brain.head.profile"
+        }
+    }
+    
+    var tint: Color {
+        switch self {
+        case .social: return .orange
+        case .academic: return .blue
+        case .finance: return .green
+        case .mentalHealth: return .purple
+        }
+    }
+}
+
+/// Whether a task tends to suit someone more introverted or extroverted.
+/// Used during intake to steer recommendations toward what feels comfortable.
+enum SocialStyle: String {
+    case introverted
+    case extroverted
+    case neutral
+}
+
+struct TaskItem: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let detail: String
+    let category: TaskCategory
+    let style: SocialStyle
+    let minutes: Int
+}
+
+/// Growth stages for the plant, driven by how consistently the user
+/// completes their daily activities.
+enum PlantStage: Int, CaseIterable {
+    case seed = 0
+    case sprout
+    case small
+    case medium
+    case large
+    case blooming
+    
+    var label: String {
+        switch self {
+        case .seed: return "Seed"
+        case .sprout: return "Sprout"
+        case .small: return "Small Plant"
+        case .medium: return "Medium Plant"
+        case .large: return "Large Plant"
+        case .blooming: return "Blooming"
+        }
+    }
+    
+    // TODO: matches asset names plant_seed, plant_sprout, plant_small,
+    // plant_medium, plant_large, plant_blooming — add these to Assets.xcassets
+    var assetName: String {
+        switch self {
+        case .seed: return "plant_seed"
+        case .sprout: return "plant_sprout"
+        case .small: return "plant_small"
+        case .medium: return "plant_medium"
+        case .large: return "plant_large"
+        case .blooming: return "plant_blooming"
+        }
+    }
+}
+
+/// Tracks the plant's care meters. Completing activities adds water,
+/// sunlight, or fertilizer depending on the task category, which in turn
+/// grows (or, if neglected, withers) the plant.
+struct PlantState {
+    var water: Int = 0
+    var sunlight: Int = 0
+    var fertilizer: Int = 0
+    var streakDays: Int = 0
+    var missedYesterday: Bool = false
+    
+    var stage: PlantStage {
+        let total = water + sunlight + fertilizer
+        switch total {
+        case 0: return .seed
+        case 1...2: return .sprout
+        case 3...5: return .small
+        case 6...9: return .medium
+        case 10...13: return .large
+        default: return .blooming
+        }
+    }
+    
+    // TODO: matches asset name "plant_wilted" — a single neglected-plant
+    // image, shown instead of the growth-stage image when true.
+    var isWilted: Bool { missedYesterday }
+    
+    mutating func reward(for category: TaskCategory) {
+        switch category {
+        case .mentalHealth, .social:
+            sunlight += 1
+        case .finance, .academic:
+            fertilizer += 1
+        }
+        water += 1
+    }
+}
+
+// MARK: - Sample Task Database
+
+/// Stand-in for your real backend/database. In intake, the user says yes/no
+/// to a handful of these per category; liked ones (and similar ones) feed
+/// the daily activity list.
+enum TaskDatabase {
+    static let all: [TaskItem] = [
+        // Social
+        TaskItem(title: "Text a friend you haven't talked to in a while", detail: "Just say hi — no big catch-up required.", category: .social, style: .introverted, minutes: 5),
+        TaskItem(title: "Compliment someone today", detail: "Genuine and specific lands best.", category: .social, style: .extroverted, minutes: 5),
+        TaskItem(title: "Thank someone who's helped you", detail: "A quick message counts.", category: .social, style: .introverted, minutes: 5),
+        TaskItem(title: "Strike up a conversation with a classmate", detail: "Doesn't have to be deep — even small talk works.", category: .social, style: .extroverted, minutes: 10),
+        
+        // Academic
+        TaskItem(title: "Read an excerpt of a book you've been meaning to start", detail: "One chapter, or even a few pages.", category: .academic, style: .introverted, minutes: 10),
+        TaskItem(title: "Review your notes from today's class", detail: "Just a quick skim to reinforce it.", category: .academic, style: .introverted, minutes: 10),
+        TaskItem(title: "Plan tomorrow's top 3 priorities", detail: "Write them down somewhere you'll see them.", category: .academic, style: .neutral, minutes: 5),
+        TaskItem(title: "Join a study group session", detail: "Even 15 minutes with others helps retention.", category: .academic, style: .extroverted, minutes: 10),
+        
+        // Finance
+        TaskItem(title: "Save $10 today", detail: "Move it to savings, or just set it aside.", category: .finance, style: .introverted, minutes: 5),
+        TaskItem(title: "Track today's spending", detail: "Jot down what you spent, no judgment.", category: .finance, style: .introverted, minutes: 5),
+        TaskItem(title: "Skip one non-essential purchase", detail: "Notice the urge, then let it pass.", category: .finance, style: .neutral, minutes: 5),
+        
+        // Mental Health
+        TaskItem(title: "Do 10 sit-ups", detail: "Small movement, real mood boost.", category: .mentalHealth, style: .introverted, minutes: 5),
+        TaskItem(title: "Take a 5-minute walk outside", detail: "Leave your phone behind if you can.", category: .mentalHealth, style: .introverted, minutes: 5),
+        TaskItem(title: "Write down one thing you're grateful for", detail: "One sentence is enough.", category: .mentalHealth, style: .introverted, minutes: 5),
+        TaskItem(title: "Try a 5-minute breathing exercise", detail: "In for 4, hold for 4, out for 4.", category: .mentalHealth, style: .introverted, minutes: 5),
+    ]
+    
+    static func items(in category: TaskCategory) -> [TaskItem] {
+        all.filter { $0.category == category }
+    }
+    
+    /// Very simple recommender: given tasks the user liked, suggest other
+    /// tasks that share a category or social style, so recommendations stay
+    /// close to what already felt comfortable.
+    static func recommend(basedOn liked: [TaskItem], excluding used: Set<UUID>, count: Int) -> [TaskItem] {
+        guard !liked.isEmpty else {
+            return Array(all.shuffled().prefix(count))
+        }
+        let likedCategories = Set(liked.map { $0.category })
+        let likedStyles = Set(liked.map { $0.style })
+        
+        let pool = all.filter { candidate in
+            !used.contains(candidate.id) &&
+            (likedCategories.contains(candidate.category) || likedStyles.contains(candidate.style))
+        }
+        return Array(pool.shuffled().prefix(count))
+    }
+}
+
+// MARK: - App Flow State
+
+enum AppStage {
+    case signIn
+    case tutorial
+    case intake
+    case seedGiven
+    case planting
+    case activities
+}
+
+final class AppState: ObservableObject {
+    @Published var stage: AppStage = .signIn
+    @Published var userName: String = ""
+    
+    @Published var likedTasks: [TaskItem] = []
+    @Published var dailyActivities: [TaskItem] = []
+    @Published var completedTaskIDs: Set<UUID> = []
+    
+    @Published var plant = PlantState()
+    
+    @Published var dislikedTasks: [TaskItem] = []
+    @Published var currentStreak: Int = 0
+    @Published var consecutiveMissedDays: Int = 0
+    @Published var showStreakPopup: Bool = false
+    @Published var streakBroken: Bool = false
+    @Published var redemptionTask: TaskItem? = nil
+    
+    
+    @Published var energyPoints: Int = 0
+    
+    @Published var showResources: Bool = false
+    
+    
+    /// Call this when the day ends (for now, triggered by the "End Day" button).
+    /// In production, trigger this from an actual date/midnight check instead.
+    func endDay() {
+        if allDoneToday {
+            currentStreak += 1
+            consecutiveMissedDays = 0
+            if redemptionTask != nil {
+                redemptionTask = nil // they redeemed it — clear the flag
+            }
+            showStreakPopup = true
+        } else {
+            consecutiveMissedDays += 1
+            if consecutiveMissedDays >= 5 && currentStreak > 0 {
+                currentStreak = 0
+                streakBroken = true
+                redemptionTask = dislikedTasks.randomElement()
+            }
+        }
+        
+        // Reset for the new day
+        completedTaskIDs.removeAll()
+        var picks = TaskDatabase.recommend(basedOn: likedTasks, excluding: [], count: 3)
+        if let redemption = redemptionTask {
+            picks = Array(picks.prefix(2)) + [redemption]
+        }
+        dailyActivities = picks
+    }
+    
+    /// Called when the user agrees to try the redemption task.
+    func acceptRedemption() {
+        streakBroken = false
+    }
+    
+    
+    
+    func signIn(name: String) {
+        userName = name.isEmpty ? "there" : name
+        stage = .tutorial
+    }
+    
+    func finishTutorial() {
+        stage = .intake
+    }
+    
+    func finishIntake() {
+        // Build the 3 priority daily activities from what the user liked.
+        var picks = TaskDatabase.recommend(basedOn: likedTasks, excluding: [], count: 3)
+        if picks.count < 3 {
+            picks = Array(Set(picks + likedTasks).prefix(3))
+        }
+        dailyActivities = picks
+        stage = .seedGiven
+    }
+    
+    func plantSeed() {
+        stage = .planting
+    }
+    
+    func confirmPlanting() {
+        stage = .activities
+    }
+    
+    func toggleComplete(_ task: TaskItem) {
+        if completedTaskIDs.contains(task.id) {
+            completedTaskIDs.remove(task.id)
+            energyPoints = max(0, energyPoints - 10)
+        } else {
+            completedTaskIDs.insert(task.id)
+            plant.reward(for: task.category)
+            energyPoints += 10
+        }
+    }
+    
+    var allDoneToday: Bool {
+        !dailyActivities.isEmpty && dailyActivities.allSatisfy { completedTaskIDs.contains($0.id) }
+    }
+}
+
+// MARK: - Root View
+
+struct ContentView: View {
+    @StateObject private var appState = AppState()
+    
+    var body: some View {
+        Group {
+            switch appState.stage {
+            case .signIn:
+                SignInView().environmentObject(appState)
+            case .tutorial:
+                TutorialView().environmentObject(appState)
+            case .intake:
+                IntakeFormView().environmentObject(appState)
+            case .seedGiven:
+                SeedGivenView().environmentObject(appState)
+            case .planting:
+                PlantingView().environmentObject(appState)
+            case .activities:
+                ActivityListView().environmentObject(appState)
+            }
+        }
+        .animation(.easeInOut, value: appState.stage)
+    }
+}
+
+// MARK: - Sign In View
+
+struct SignInView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var fallbackName: String = ""
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Spacer()
+                
+                // TODO: replace with Image("mind_matters_logo")
+                Image(systemName: "leaf.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 90, height: 90)
+                    .foregroundColor(Theme.sage)
+                    .padding(24)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                
+                Text("Mind Matters")
+                    .font(.largeTitle.bold())
+                    .foregroundColor(Theme.textDark)
+                Text("Small daily wins for your mind, body, and wallet.")
+                    .font(.subheadline)
+                    .foregroundColor(Theme.textDark.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                
+                Spacer()
+                
+                SignInWithAppleButton(.signIn, onRequest: { request in
+                    request.requestedScopes = [.fullName]
+                }, onCompletion: { result in
+                    switch result {
+                    case .success(let authResults):
+                        if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
+                            let name = credential.fullName?.givenName ?? "there"
+                            appState.signIn(name: name)
+                        } else {
+                            appState.signIn(name: "there")
+                        }
+                    case .failure:
+                        appState.signIn(name: fallbackName)
+                    }
+                })
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 40)
+                
+                VStack(spacing: 8) {
+                    TextField("Your name (prototype only)", text: $fallbackName)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.horizontal, 40)
+                    Button("Continue without Apple Sign-In") {
+                        appState.signIn(name: fallbackName)
+                    }
+                    .font(.footnote)
+                    .foregroundColor(Theme.teal)
+                }
+                .padding(.top, 8)
+                
+                Spacer()
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Tutorial View
+
+
+struct TutorialView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var pageIndex = 0
+    
+    private let pages: [(icon: String, title: String, body: String)] = [
+        ("checklist", "Daily Activities", "Every day you'll get 3 small tasks across social, academic, financial, and mental health categories."),
+        ("leaf.fill", "Your Plant", "Complete tasks to water, give sunlight, and fertilize your plant. Skip too many days and it'll wilt."),
+        ("slider.horizontal.3", "Made For You", "Your intake form tells us what feels comfortable, so suggestions match your style — introverted or extroverted."),
+        ("checkmark.circle.fill", "Check Things Off", "Mark tasks complete as you go. Small, 5-10 minute wins add up.")
+    ]
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack {
+                Text("Welcome, \(appState.userName)!")
+                    .font(.title2.bold())
+                    .foregroundColor(Theme.textDark)
+                    .padding(.top)
+                
+                TabView(selection: $pageIndex) {
+                    ForEach(pages.indices, id: \.self) { i in
+                        VStack(spacing: 20) {
+                            Image(systemName: pages[i].icon)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 70, height: 70)
+                                .foregroundColor(Theme.teal)
+                                .padding(20)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                            
+                            Text(pages[i].title)
+                                .font(.title3.bold())
+                                .foregroundColor(Theme.textDark)
+                            Text(pages[i].body)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(Theme.textDark.opacity(0.7))
+                                .padding(.horizontal, 30)
+                        }
+                        .tag(i)
+                    }
+                }
+                .tabViewStyle(.page)
+                .frame(height: 380)
+                
+                Button(pageIndex == pages.count - 1 ? "Get Started" : "Next") {
+                    if pageIndex == pages.count - 1 {
+                        appState.finishTutorial()
+                    } else {
+                        pageIndex += 1
+                    }
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 12)
+                .background(Theme.teal)
+                .clipShape(Capsule())
+                .padding(.bottom, 30)
+            }
+        }
+    }
+}
+
+// MARK: - Intake Form View
+
+struct IntakeFormView: View {
+    @EnvironmentObject var appState: AppState
+    
+    @State private var queue: [TaskItem] = TaskCategory.allCases.flatMap { cat in
+        Array(TaskDatabase.items(in: cat).shuffled().prefix(2))
+    }.shuffled()
+    @State private var index = 0
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                ProgressView(value: Double(index), total: Double(max(queue.count, 1)))
+                    .tint(Theme.teal)
+                    .padding(.horizontal)
+                
+                Text("Quick Intake")
+                    .font(.title2.bold())
+                    .foregroundColor(Theme.textDark)
+                Text("Would you enjoy doing this kind of task?")
+                    .foregroundColor(Theme.textDark.opacity(0.7))
+                
+                if index < queue.count {
+                    let task = queue[index]
+                    VStack(spacing: 12) {
+                        Label(task.category.rawValue, systemImage: task.category.symbol)
+                            .font(.caption.bold())
+                            .padding(6)
+                            .background(Theme.sage.opacity(0.2))
+                            .foregroundColor(Theme.teal)
+                            .clipShape(Capsule())
+                        
+                        Text(task.title)
+                            .font(.title3.bold())
+                            .foregroundColor(Theme.textDark)
+                            .multilineTextAlignment(.center)
+                        Text(task.detail)
+                            .foregroundColor(Theme.textDark.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
+                    .padding(.horizontal)
+                    
+                    HStack(spacing: 20) {
+                        Button {
+                            advance(liked: false, task: task)
+                        } label: {
+                            Label("No thanks", systemImage: "xmark")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .foregroundColor(Theme.teal)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.teal, lineWidth: 1))
+                        
+                        Button {
+                            advance(liked: true, task: task)
+                        } label: {
+                            Label("I'd try this", systemImage: "checkmark")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .foregroundColor(.white)
+                        .background(Theme.sage)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.horizontal)
+                } else {
+                    Text("All set!")
+                        .font(.headline)
+                        .foregroundColor(Theme.textDark)
+                }
+                
+                Spacer()
+            }
+            .padding(.top)
+        }
+        .onChange(of: index) { oldValue, newValue in
+            if newValue >= queue.count {
+                appState.finishIntake()
+            }
+        }
+    }
+    
+    private func advance(liked: Bool, task: TaskItem) {
+        if liked {
+            appState.likedTasks.append(task)
+        } else {
+            appState.dislikedTasks.append(task)
+        }
+        index += 1
+    }
+}
+
+// MARK: - Seed Given View
+
+struct SeedGivenView: View {
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Spacer()
+                Text("Here's your Starter Seed 🌱")
+                    .font(.title.bold())
+                    .foregroundColor(Theme.textDark)
+                    .multilineTextAlignment(.center)
+                
+                // TODO: replace with Image("plant_seed")
+                Image(systemName: "circle.dotted")
+                    .resizable()
+                    .frame(width: 90, height: 90)
+                    .foregroundColor(Theme.sage)
+                    .padding(24)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                
+                Text("This little seed grows alongside your daily habits. Water it, give it sunlight, and fertilize it by completing your activities.")
+                    .foregroundColor(Theme.textDark.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+                
+                Spacer()
+                
+                Button("Plant It") {
+                    appState.plantSeed()
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 12)
+                .background(Theme.teal)
+                .clipShape(Capsule())
+                .padding(.bottom, 40)
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Planting View
+
+struct PlantingView: View {
+    @EnvironmentObject var appState: AppState
+    @State private var planted = false
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Spacer()
+                Text(planted ? "Planted!" : "Tap the pot to plant your seed")
+                    .font(.title2.bold())
+                    .foregroundColor(Theme.textDark)
+                
+                // TODO: replace with your pot + seed image assets / animation
+                ZStack {
+                    Image(systemName: "smallcircle.filled.circle")
+                        .resizable()
+                        .frame(width: 140, height: 100)
+                        .foregroundColor(Theme.teal.opacity(0.5))
+                    if planted {
+                        Image(systemName: "circle.dotted")
+                            .resizable()
+                            .frame(width: 40, height: 40)
+                            .foregroundColor(.brown)
+                            .offset(y: -20)
+                            .transition(.scale)
+                    }
+                }
+                .onTapGesture {
+                    withAnimation(.spring()) { planted = true }
+                }
+                
+                Spacer()
+                
+                Button("Continue") {
+                    appState.confirmPlanting()
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 40)
+                .padding(.vertical, 12)
+                .background(planted ? Theme.teal : Color.gray.opacity(0.4))
+                .clipShape(Capsule())
+                .disabled(!planted)
+                .padding(.bottom, 40)
+            }
+            .padding()
+        }
+    }
+}
+// MARK: - Activity List View
+
+struct ActivityListView: View {
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                AppHeaderView()
+                    .padding(.top, 8)
+                
+                ScrollView {
+                    VStack(spacing: 18) {
+                        ActivePlantCard(stage: appState.plant.stage, isWilted: appState.plant.isWilted)
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+                        
+                        HStack {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .foregroundColor(Theme.teal)
+                            Text("Today's Activities:")
+                                .font(.headline)
+                                .foregroundColor(Theme.teal)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        
+                        VStack(spacing: 12) {
+                            ForEach(appState.dailyActivities) { task in
+                                ActivityPillRow(
+                                    task: task,
+                                    isDone: appState.completedTaskIDs.contains(task.id)
+                                ) {
+                                    appState.toggleComplete(task)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.bottom, 100) // room for the bottom bar
+                }
+                
+                BottomStatusBar(streak: appState.currentStreak, energy: appState.energyPoints) {
+                    appState.endDay()
+                } onResourcesTap: {
+                    appState.showResources = true
+                }
+                .padding(.bottom, 12)
+            }
+        }
+        .sheet(isPresented: $appState.showStreakPopup) {
+            StreakPopupView().environmentObject(appState)
+        }
+        .sheet(isPresented: $appState.showResources){
+            ResourcesHubView()
+        }
+        .sheet(isPresented: $appState.streakBroken) {
+            StreakBrokenView().environmentObject(appState)
+        }
+    }
+}
+
+// MARK: - Header
+
+struct AppHeaderView: View {
+    var body: some View {
+        HStack {
+            Button {
+                // TODO: hook up a side menu / settings drawer
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.title2)
+                    .foregroundColor(Theme.textDark)
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 4) {
+                // TODO: replace with Image("mind_matters_logo") once exported
+                Image(systemName: "leaf.fill")
+                    .foregroundColor(Theme.sage)
+                Text("Mind")
+                    .fontWeight(.bold)
+                    .foregroundColor(Theme.textDark)
+                Text("Matters")
+                    .fontWeight(.bold)
+                    .foregroundColor(Theme.teal)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            
+            Spacer()
+            
+            Image(systemName: "person.circle.fill")
+                .font(.title)
+                .foregroundColor(Theme.teal)
+        }
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Active Plant Card
+
+struct ActivePlantCard: View {
+    let stage: PlantStage
+    let isWilted: Bool
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Image(systemName: "leaf.fill")
+                    .foregroundColor(Theme.teal)
+                Text("Your Active Plant")
+                    .font(.headline)
+                    .foregroundColor(Theme.teal)
+                Spacer()
+            }
+            
+            // TODO: replace with Image(isWilted ? "plant_wilted" : stage.assetName)
+            // once your growth + wilted illustrations are in Assets.xcassets.
+            Image(systemName: isWilted ? "cloud.drizzle.fill" : "leaf.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 130)
+                .foregroundColor(isWilted ? .yellow.opacity(0.7) : Theme.sage)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Theme.cardWhite)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+// MARK: - Activity Row (sage pill style)
+
+struct ActivityPillRow: View {
+    let task: TaskItem
+    let isDone: Bool
+    let onToggle: () -> Void
+    
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 14) {
+                Image(systemName: task.category.symbol)
+                    .foregroundColor(Theme.teal)
+                    .frame(width: 34, height: 34)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                
+                Text(task.title)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                    .strikethrough(isDone)
+                
+                Spacer()
+                
+                Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(.white)
+            }
+            .padding(12)
+            .background(Theme.sage)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Bottom Status Bar
+
+struct BottomStatusBar: View {
+    let streak: Int
+    let energy: Int
+    let onEndDay: () -> Void
+    let onResourcesTap: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 22) {
+            Button(action: onResourcesTap) {
+                Image(systemName: "leaf.fill")
+                    .foregroundColor(.white)
+            }
+            
+            Button(action: onEndDay) {
+                Image(systemName: "arrow.right.circle.fill")
+                    .foregroundColor(.white)
+            }
+            
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                Text("\(streak)")
+            }
+            .foregroundColor(.white)
+            
+            HStack(spacing: 4) {
+                Image(systemName: "bolt.fill")
+                Text("\(energy)")
+            }
+            .foregroundColor(.white)
+        }
+        .font(.headline)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .background(Theme.teal)
+        .clipShape(Capsule())
+    }
+}
+
+
+
+//Campus Resources Section
+struct CampusResource: Identifiable {
+    let id = UUID()
+    let title: String
+    let detail: String
+    let phone: String?
+    let location: String?
+}
+
+
+enum CampusResourceDatabase {
+    static let formalHelp: [CampusResource] = [
+        CampusResource(
+            title: "Individual Counseling",
+            detail: "One-on-one sessions with a licensed counselor at the UIC Counseling Center. Confidential and free for enrolled students.",
+            phone: "(312) 996-3490",
+            location: "Student Services Building, Suite 2010"
+        ),
+        CampusResource(
+            title: "Group Therapy",
+            detail: "Weekly small-group sessions (4-8 students) led by 1-2 trained group therapists. No session limit, in-person or virtual.",
+            phone: "(312) 996-3490",
+            location: "Student Services Building, Suite 2010"
+        ),
+        CampusResource(
+            title: "24/7 Crisis Line",
+            detail: "For urgent support any time, day or night.",
+            phone: "(312) 996-3490 — press 2 after hours",
+            location: nil
+        )
+    ]
+    
+    static let workshops: [CampusResource] = [
+        CampusResource(
+            title: "Mind Body Workshop",
+            detail: "Guided session combining light movement and mindfulness to help reset stress levels.",
+            phone: nil,
+            location: "Check UIC Campus Recreation for current schedule"
+        ),
+        CampusResource(
+            title: "Puppy Yoga Workshop",
+            detail: "Yoga session with visiting therapy dogs — a relaxed, low-pressure way to de-stress.",
+            phone: nil,
+            location: "Check UIC Campus Recreation for current schedule"
+        ),
+        CampusResource(
+            title: "F45 Workout Week",
+            detail: "Free trial week of F45-style group workouts through Campus Recreation.",
+            phone: nil,
+            location: "UIC Campus Recreation Center"
+        )
+    ]
+}
+
+
+
+
+// MARK: - Resources Hub
+
+struct ResourcesHubView: View {
+    @Environment(\.dismiss) var dismiss
+    @State private var selectedPath: ResourcePath? = nil
+    
+    enum ResourcePath: Identifiable {
+        case formalHelp, workshops
+        var id: Self { self }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                
+                VStack(spacing: 20) {
+                    Text("On Campus Resources")
+                        .font(.title2.bold())
+                        .foregroundColor(Theme.textDark)
+                    Text("University of Illinois at Chicago")
+                        .font(.subheadline)
+                        .foregroundColor(Theme.textDark.opacity(0.6))
+                    
+                    VStack(spacing: 16) {
+                        ResourceOptionCard(
+                            icon: "person.fill.checkmark",
+                            title: "Formal Help",
+                            subtitle: "Talk to a counselor or join a group therapy session"
+                        ) {
+                            selectedPath = .formalHelp
+                        }
+                        
+                        ResourceOptionCard(
+                            icon: "figure.mind.and.body",
+                            title: "On Campus Workshops",
+                            subtitle: "Mind Body, Puppy Yoga, F45 Workout Week, and more"
+                        ) {
+                            selectedPath = .workshops
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                }
+                .padding(.top, 30)
+            }
+            .navigationDestination(item: $selectedPath) { path in
+                switch path {
+                case .formalHelp:
+                    ResourceListView(title: "Formal Help", resources: CampusResourceDatabase.formalHelp)
+                case .workshops:
+                    ResourceListView(title: "Workshops", resources: CampusResourceDatabase.workshops)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Close") { dismiss() }
+                        .foregroundColor(Theme.teal)
+                }
+            }
+        }
+    }
+}
+
+struct ResourceOptionCard: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(.white)
+                    .frame(width: 50, height: 50)
+                    .background(Theme.teal)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(Theme.textDark)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(Theme.textDark.opacity(0.6))
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(Theme.textDark.opacity(0.4))
+            }
+            .padding()
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Resource List
+
+struct ResourceListView: View {
+    let title: String
+    let resources: [CampusResource]
+    
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 14) {
+                    ForEach(resources) { resource in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(resource.title)
+                                .font(.headline)
+                                .foregroundColor(Theme.textDark)
+                            Text(resource.detail)
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textDark.opacity(0.7))
+                            
+                            if let phone = resource.phone {
+                                Label(phone, systemImage: "phone.fill")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.teal)
+                            }
+                            if let location = resource.location {
+                                Label(location, systemImage: "mappin.and.ellipse")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.teal)
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                }
+                .padding()
+            }
+        }
+    
+    }
+}
+
+
+
+// MARK: - Streak Popup
+
+struct StreakPopupView: View {
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "flame.fill")
+                .resizable()
+                .frame(width: 70, height: 70)
+                .foregroundColor(.orange)
+            
+            Text("\(appState.currentStreak) Day Streak!")
+                .font(.largeTitle.bold())
+            
+            Text("You completed all of today's activities. Come back tomorrow to keep it going.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+            
+            Divider()
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Your streak counts consecutive days you finish all 3 daily activities.", systemImage: "info.circle")
+                Label("Miss your activities for 5 days in a row and the streak resets to zero.", systemImage: "exclamationmark.triangle")
+            }
+            .font(.footnote)
+            .foregroundColor(.secondary)
+            .padding(.horizontal)
+            
+            Button("Nice!") {
+                appState.showStreakPopup = false
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+    }
+}
+
+
+// MARK: - Streak Broken / Redemption
+
+struct StreakBrokenView: View {
+    @EnvironmentObject var appState: AppState
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "flame.slash")
+                .resizable()
+                .frame(width: 70, height: 70)
+                .foregroundColor(.gray)
+            
+            Text("Your streak reset")
+                .font(.title.bold())
+            
+            Text("You went 5 days without finishing your activities, so your streak is back to zero. That's okay — every streak starts somewhere.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+            
+            if let task = appState.redemptionTask {
+                VStack(spacing: 8) {
+                    Text("Want a fresh start? Try something a little outside your comfort zone:")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Text(task.title)
+                        .font(.headline)
+                    Text(task.detail)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.08)))
+                .padding(.horizontal)
+                
+                Button("Add this to today's activities") {
+                    appState.acceptRedemption()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            
+            Button("Maybe later") {
+                appState.streakBroken = false
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding()
+    }
+}
+
