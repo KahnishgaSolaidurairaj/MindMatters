@@ -84,7 +84,7 @@ struct RelationshipCheckInView: View {
             ScrollView {
                 VStack(spacing: 20) {
 
-                    // MARK: Header
+                    // header
 
                     VStack(spacing: 10) {
                         Image(systemName: "leaf.fill")
