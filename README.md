@@ -2,7 +2,9 @@
 
 **Mind Matters** is a SwiftUI iOS prototype that helps students build small daily habits across mental wellness, academics, finances, and social life — visualized through a personal garden that grows with their progress.
 
-> *Small daily wins for your mind, body, and wallet.*
+*Team Lead:* Kimberlee Wilkens
+
+*Team:* Kahnishga Solaidurairaj, Amaani Ziauddin, Lavanya Vats, Sneha Sharma, and Ian Aguilar
 
 ## What It Does
 
@@ -42,8 +44,5 @@ mindMatters/
 
 ## Architecture
 
-The app uses **MVVM** with a central `AppState` object that drives navigation, task completion, streak tracking, and garden progress. Views observe `AppState` via `@EnvironmentObject`.
+The app uses **MVVM** with a central AppState object that drives navigation, task completion, streak tracking, and garden progress. Views observe AppState via @EnvironmentObject.
 
----
-
-*HAL Mind Matters — prototype build.*
