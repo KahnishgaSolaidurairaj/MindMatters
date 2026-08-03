@@ -38,7 +38,7 @@ struct InviteRelationshipView: View {
                             .font(Theme.pageTitle)
                             .foregroundStyle(darkText)
 
-                        Text("Invite a partner, friend, or family member to grow with you.")
+                        Text("Invite someone to grow with you.")
                         .font(Theme.bodyText)
                         .foregroundStyle(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.center)
@@ -118,6 +118,20 @@ struct InviteRelationshipView: View {
                             .foregroundStyle(.white)
                             .clipShape(
                                 RoundedRectangle(cornerRadius: 16)
+                            )
+                    }
+
+                    NavigationLink(value: AppDestination.coOpActivities) {
+                        Label("Find Friends", systemImage: "magnifyingglass")
+                            .font(Theme.buttonText)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.white.opacity(0.9))
+                            .foregroundStyle(primaryTeal)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(primaryTeal.opacity(0.35), lineWidth: 1)
                             )
                     }
 

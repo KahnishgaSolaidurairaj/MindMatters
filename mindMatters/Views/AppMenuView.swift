@@ -2,86 +2,78 @@ import SwiftUI
 
 struct AppMenuView: View {
     @EnvironmentObject var appState: AppState
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        HStack(spacing: 16) {
-                            Text("Menu")
-                                .font(Theme.pageTitle)
-                                .foregroundStyle(Theme.textDark)
-
-                            MindMattersLogoView(size: 108)
+        AppPageShell(title: "Menu") {
+            ScrollView {
+                VStack(spacing: 24) {
+                    menuSection(title: "Home") {
+                        Button {
+                            appState.navigateToHome()
+                        } label: {
+                            menuRowLabel(title: "Today's Tasks", icon: "checkmark.circle.fill")
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 8)
+                    }
 
-                        menuSection(title: "Your Garden") {
-                            NavigationLink {
-                                FullGardenView()
-                                    .environmentObject(appState)
-                            } label: {
-                                menuRowLabel(title: "View Full Garden", icon: "leaf.circle.fill")
-                            }
-
-                            Button {
-                                dismiss()
-                                appState.showPriorityBreakdown = true
-                            } label: {
-                                menuRowLabel(title: "Priority Breakdown", icon: "chart.bar.fill")
-                            }
+                    menuSection(title: "Your Garden") {
+                        NavigationLink(value: AppDestination.greenhouse) {
+                            menuRowLabel(title: "View Greenhouse", icon: "house.lodge.fill")
                         }
 
-                        menuSection(title: "Connections") {
-                            NavigationLink {
-                                RelationshipCheckInView()
-                            } label: {
-                                menuRowLabel(title: "Relationship Check-In", icon: "person.2.fill")
-                            }
+                        NavigationLink(value: AppDestination.priorityBreakdown) {
+                            menuRowLabel(title: "Priority Breakdown", icon: "chart.bar.fill")
+                        }
+                    }
 
-                            NavigationLink {
-                                InviteRelationshipView()
-                            } label: {
-                                menuRowLabel(title: "Invite a Connection", icon: "person.badge.plus")
-                            }
-
-                            if appState.hasConnection {
-                                NavigationLink {
-                                    ConnectionGreenhouseView(connectionName: appState.connectionName)
-                                } label: {
-                                    menuRowLabel(
-                                        title: "Visit Connection's Greenhouse",
-                                        icon: "house.lodge.fill"
-                                    )
-                                }
-                            }
+                    menuSection(title: "Profile") {
+                        NavigationLink(value: AppDestination.profile) {
+                            menuRowLabel(title: "Edit Profile", icon: "person.crop.circle")
                         }
 
-                        menuSection(title: "Campus") {
-                            Button {
-                                dismiss()
-                                appState.showResources = true
-                            } label: {
-                                menuRowLabel(title: "Browse Campus Resources", icon: "building.2.fill")
+//                        NavigationLink(value: AppDestination.privacySettings) {
+//                            menuRowLabel(title: "Privacy Settings", icon: "lock.shield.fill")
+//                        }
+
+                        NavigationLink(value: AppDestination.rewardsShop) {
+                            menuRowLabel(title: "Points & Rewards", icon: "bolt.fill")
+                        }
+
+                        NavigationLink(value: AppDestination.streakCalendar) {
+                            menuRowLabel(title: "Activity Calendar", icon: "calendar")
+                        }
+                    }
+
+                    menuSection(title: "Connections") {
+                        NavigationLink(value: AppDestination.coOpActivities) {
+                            menuRowLabel(title: "CO-OP Activities", icon: "person.3.fill")
+                        }
+
+                        NavigationLink(value: AppDestination.relationshipCheckIn) {
+                            menuRowLabel(title: "Relationship Check-In", icon: "person.2.fill")
+                        }
+
+                        NavigationLink(value: AppDestination.inviteConnection) {
+                            menuRowLabel(title: "Invite a Connection", icon: "person.badge.plus")
+                        }
+
+                        if appState.hasConnection {
+                            NavigationLink(value: AppDestination.connectionGreenhouse(appState.connectionName)) {
+                                menuRowLabel(
+                                    title: "Visit Connection's Greenhouse",
+                                    icon: "house.lodge.fill"
+                                )
                             }
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
+
+                    menuSection(title: "Campus") {
+                        NavigationLink(value: AppDestination.resources) {
+                            menuRowLabel(title: "Browse Campus Resources", icon: "building.2.fill")
+                        }
+                    }
                 }
-            }
-            .toolbarBackground(Theme.background, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .font(Theme.buttonText)
-                        .foregroundStyle(Theme.teal)
-                }
+                .padding(.horizontal)
+                .padding(.bottom, 24)
             }
         }
     }
@@ -122,5 +114,13 @@ struct AppMenuView: View {
         .padding()
         .background(Color.white.opacity(0.92))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+#Preview {
+    NavigationStack {
+        AppMenuView()
+            .environmentObject(AppState())
     }
 }

@@ -30,6 +30,16 @@ enum PlantKind: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Emotional meaning shown during plant selection intake.
+    var meaningText: String {
+        switch self {
+        case .cactus: return "Steady, resilient, low-maintenance growth"
+        case .rose: return "Intentional care, blooming through consistency"
+        case .sunflower: return "Turning toward light, social warmth"
+        case .tulip: return "Opening up, physical and mental wellness"
+        }
+    }
+
     /// Decorative pot for the weekly streak plant — not tied to category priorities.
     var streakPotAssetName: String { "A_Pot" }
 
@@ -129,11 +139,11 @@ struct GardenPlantProfile: Identifiable {
     let stage: PlantStage
     let progress: Int
 
-    init(priority: GardenPriority, stage: PlantStage, progress: Int) {
+    init(priority: GardenPriority, kind: PlantKind, stage: PlantStage, progress: Int) {
         id = priority
-        name = priority.plantDisplayName
+        self.kind = kind
+        name = kind.displayName
         category = priority.rawValue
-        kind = priority.plantKind
         potAssetName = priority.potAssetName
         self.stage = stage
         self.progress = progress

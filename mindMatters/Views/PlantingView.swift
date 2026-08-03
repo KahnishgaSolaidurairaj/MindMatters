@@ -1,8 +1,13 @@
 import SwiftUI
 
+/// Onboarding planting moment — tap the pot to begin the priority garden journey.
 struct PlantingView: View {
     @EnvironmentObject var appState: AppState
     @State private var planted = false
+
+    private var starterPlant: PlantKind {
+        appState.plantKind(for: appState.focusedPriority)
+    }
 
     var body: some View {
         ZStack {
@@ -13,20 +18,27 @@ struct PlantingView: View {
 
                 MindMattersLogoView(size: 56)
 
-                Text(planted ? "Planted!" : "Tap the pot to plant your weekly plant")
+                Text(planted ? "You're ready to grow!" : "Let's start our journey")
                     .font(Theme.sectionTitle)
                     .foregroundColor(Theme.textDark)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                if !planted {
+                    Text("Tap the pot to get started")
+                        .font(Theme.bodyText)
+                        .foregroundColor(Theme.textDark.opacity(0.75))
+                }
 
                 ZStack(alignment: .bottom) {
-                    Image(appState.selectedPlantKind.streakPotAssetName)
+                    Image(starterPlant.streakPotAssetName)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 160, height: 90)
 
                     if planted {
                         PlantImageView(
-                            kind: appState.selectedPlantKind,
+                            kind: starterPlant,
                             stage: .seed,
                             height: 80
                         )
@@ -37,6 +49,7 @@ struct PlantingView: View {
                 .onTapGesture {
                     withAnimation(.spring()) { planted = true }
                 }
+                .accessibilityLabel("Plant pot. Tap to begin.")
 
                 Spacer()
 
@@ -54,5 +67,6 @@ struct PlantingView: View {
             }
             .padding()
         }
+        .interactiveDismissDisabled()
     }
 }

@@ -12,9 +12,9 @@ struct SignInView: View {
                 Theme.background.ignoresSafeArea()
 
                 VStack(spacing: 28) {
-                    Spacer()
+                    Spacer(minLength: 24)
 
-                    MindMattersLogoView(size: 360)
+                    MindMattersLogoView(size: 140)
 
                     Text("Mind Matters")
                         .font(Theme.pageTitle)
@@ -24,9 +24,10 @@ struct SignInView: View {
                         .font(Theme.bodyText)
                         .foregroundColor(Theme.textDark.opacity(0.8))
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 32)
 
-                    Spacer()
+                    Spacer(minLength: 24)
 
                     SignInWithAppleButton(.signIn, onRequest: { request in
                         request.requestedScopes = [.fullName]
@@ -34,10 +35,10 @@ struct SignInView: View {
                         switch result {
                         case .success(let authResults):
                             if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
-                                let name = credential.fullName?.givenName ?? "there"
+                                let name = credential.fullName?.givenName ?? ""
                                 appState.signIn(name: name)
                             } else {
-                                appState.signIn(name: "there")
+                                appState.signIn(name: "")
                             }
                         case .failure:
                             appState.signIn(name: fallbackName)
@@ -72,7 +73,9 @@ struct SignInView: View {
                 .padding()
             }
             .sheet(isPresented: $showResources) {
-                ResourcesHubView()
+                NavigationStack {
+                    ResourcesHubView()
+                }
             }
         }
     }

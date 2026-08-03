@@ -1,5 +1,7 @@
 import SwiftUI
 
+/*
+// Weekly plant intro removed — onboarding goes straight to PlantingView.
 struct SeedGivenView: View {
     @EnvironmentObject var appState: AppState
 
@@ -34,7 +36,7 @@ struct SeedGivenView: View {
                 .background(Color.white.opacity(0.92))
                 .clipShape(RoundedRectangle(cornerRadius: 20))
 
-                Text("This plant grows one stage for each day you complete your streak.")
+                Text("Complete daily tasks to grow one stage per day.")
                     .font(Theme.bodyText)
                     .foregroundColor(Theme.textDark.opacity(0.8))
                     .multilineTextAlignment(.center)
@@ -57,3 +59,4 @@ struct SeedGivenView: View {
         }
     }
 }
+*/

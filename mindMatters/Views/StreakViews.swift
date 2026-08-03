@@ -3,6 +3,10 @@ import SwiftUI
 struct StreakPopupView: View {
     @EnvironmentObject var appState: AppState
 
+    private var latestReward: StreakReward? {
+        ConnectionCatalog.streakRewards.first { $0.streakDay == appState.currentStreak }
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "flame.fill")
@@ -13,21 +17,11 @@ struct StreakPopupView: View {
             Text("\(appState.currentStreak) Day Streak!")
                 .font(Theme.pageTitle)
 
-            Text("You finished all of today's tasks. Come back tomorrow to keep it going.")
-                .font(Theme.bodyText)
-                .multilineTextAlignment(.center)
-                .foregroundColor(Theme.textDark.opacity(0.8))
-                .padding(.horizontal)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 10) {
-                Label("Your streak counts days you finish all 3 daily tasks.", systemImage: "info.circle")
-                Label("Miss 5 days in a row and your streak resets.", systemImage: "exclamationmark.triangle")
+            if let reward = latestReward {
+                Label("+\(reward.energyBonus) \(BloomCurrency.displayName)", systemImage: BloomCurrency.icon)
+                    .font(Theme.bodyText.weight(.semibold))
+                    .foregroundStyle(Theme.teal)
             }
-            .font(Theme.bodyText)
-            .foregroundColor(Theme.textDark.opacity(0.75))
-            .padding(.horizontal)
 
             Button("Nice!") {
                 appState.showStreakPopup = false
@@ -44,15 +38,15 @@ struct StreakBrokenView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "flame.slash")
+            Image(systemName: "heart.slash")
                 .resizable()
                 .frame(width: 70, height: 70)
-                .foregroundColor(.gray)
+                .foregroundColor(.orange)
 
-            Text("Your streak reset")
+            Text("Plant health dropped")
                 .font(Theme.sectionTitle)
 
-            Text("You went 5 days without finishing your tasks. Every streak starts somewhere.")
+            Text("5 missed days reset your streak.")
                 .font(Theme.bodyText)
                 .multilineTextAlignment(.center)
                 .foregroundColor(Theme.textDark.opacity(0.8))
@@ -60,10 +54,6 @@ struct StreakBrokenView: View {
 
             if let task = appState.redemptionTask {
                 VStack(spacing: 8) {
-                    Text("Want a fresh start? Try something new:")
-                        .font(Theme.bodyText)
-                        .foregroundColor(Theme.textDark.opacity(0.75))
-                        .multilineTextAlignment(.center)
                     Text(task.title)
                         .font(Theme.rowTitle)
                     Text(task.detail)
@@ -75,14 +65,14 @@ struct StreakBrokenView: View {
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.08)))
                 .padding(.horizontal)
 
-                Button("Add this to today's tasks") {
+                Button("Try This Task") {
                     appState.acceptRedemption()
                 }
                 .font(Theme.buttonText)
                 .buttonStyle(.borderedProminent)
             }
 
-            Button("Maybe later") {
+            Button("Maybe Later") {
                 appState.streakBroken = false
             }
             .font(Theme.buttonText)

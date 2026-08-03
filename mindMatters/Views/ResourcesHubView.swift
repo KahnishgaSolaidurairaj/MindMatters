@@ -1,102 +1,79 @@
 import SwiftUI
 
 struct ResourcesHubView: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var selectedPath: ResourcePath?
-
-    enum ResourcePath: Identifiable {
-        case formalHelp, workshops
-        var id: Self { self }
-    }
-
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
+        ScrollView {
+            VStack(spacing: 20) {
+                Text("University of Illinois at Chicago")
+                    .font(Theme.bodyText)
+                    .foregroundColor(Theme.textDark.opacity(0.75))
 
-                VStack(spacing: 20) {
-                    Text("On Campus Resources")
-                        .font(Theme.sectionTitle)
-                        .foregroundColor(Theme.textDark)
-                    Text("University of Illinois at Chicago")
-                        .font(Theme.bodyText)
-                        .foregroundColor(Theme.textDark.opacity(0.75))
-
-                    VStack(spacing: 16) {
-                        ResourceOptionCard(
+                VStack(spacing: 16) {
+                    NavigationLink {
+                        ResourceListView(
+                            title: "Formal Help",
+                            resources: CampusResourceDatabase.formalHelp
+                        )
+                    } label: {
+                        ResourceOptionCardLabel(
                             icon: "person.fill.checkmark",
                             title: "Formal Help",
                             subtitle: "Talk to a counselor or join a group therapy session"
-                        ) {
-                            selectedPath = .formalHelp
-                        }
+                        )
+                    }
 
-                        ResourceOptionCard(
+                    NavigationLink {
+                        ResourceListView(
+                            title: "Workshops",
+                            resources: CampusResourceDatabase.workshops
+                        )
+                    } label: {
+                        ResourceOptionCardLabel(
                             icon: "figure.mind.and.body",
                             title: "On Campus Workshops",
                             subtitle: "Mind Body, Puppy Yoga, F45 Workout Week, and more"
-                        ) {
-                            selectedPath = .workshops
-                        }
+                        )
                     }
-                    .padding(.horizontal)
-
-                    Spacer()
                 }
-                .padding(.top, 30)
+                .padding(.horizontal)
             }
-            .navigationDestination(item: $selectedPath) { path in
-                switch path {
-                case .formalHelp:
-                    ResourceListView(title: "Formal Help", resources: CampusResourceDatabase.formalHelp)
-                case .workshops:
-                    ResourceListView(title: "Workshops", resources: CampusResourceDatabase.workshops)
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .foregroundColor(Theme.teal)
-                }
-            }
+            .padding(.top, 8)
+            .padding(.bottom, 24)
         }
     }
 }
 
-struct ResourceOptionCard: View {
+struct ResourceOptionCardLabel: View {
     let icon: String
     let title: String
     let subtitle: String
-    let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .frame(width: 50, height: 50)
-                    .background(Theme.teal)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.white)
+                .frame(width: 50, height: 50)
+                .background(Theme.teal)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(Theme.rowTitle)
-                        .foregroundColor(Theme.textDark)
-                    Text(subtitle)
-                        .font(Theme.bodyText)
-                        .foregroundColor(Theme.textDark.opacity(0.75))
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundColor(Theme.textDark.opacity(0.4))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(Theme.rowTitle)
+                    .foregroundColor(Theme.textDark)
+                Text(subtitle)
+                    .font(Theme.bodyText)
+                    .foregroundColor(Theme.textDark.opacity(0.75))
+                    .multilineTextAlignment(.leading)
             }
-            .padding()
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundColor(Theme.textDark.opacity(0.4))
         }
-        .buttonStyle(.plain)
+        .padding()
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .contentShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -107,6 +84,7 @@ struct ResourceListView: View {
     var body: some View {
         ZStack {
             Theme.background.ignoresSafeArea()
+
             ScrollView {
                 VStack(spacing: 14) {
                     ForEach(resources) { resource in
@@ -138,5 +116,7 @@ struct ResourceListView: View {
                 .padding()
             }
         }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

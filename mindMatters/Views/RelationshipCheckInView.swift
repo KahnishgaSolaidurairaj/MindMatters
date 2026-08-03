@@ -42,7 +42,7 @@ struct RelationshipCheckInView: View {
                             .font(Theme.rowTitle)
                             .foregroundStyle(darkText)
 
-                        Text("Update your relationships so your greenhouse stays personalized.")
+                        Text("What changed since last time?")
                         .font(Theme.bodyText)
                         .foregroundStyle(Theme.textDark.opacity(0.75))
                         .multilineTextAlignment(.center)
@@ -106,7 +106,7 @@ struct RelationshipCheckInView: View {
                                     RoundedRectangle(cornerRadius: 14)
                                 )
 
-                                Text("Enter the name of the person you'd like to grow with.")
+                                Text("Name of person to grow with.")
                                 .font(Theme.bodyText)
                                 .foregroundStyle(Theme.textDark.opacity(0.75))
                             }
@@ -134,7 +134,7 @@ struct RelationshipCheckInView: View {
                         .tint(primaryTeal)
 
                         if inviteOtherRelationships {
-                            Text("You can invite friends, family, or others to join your greenhouse.")
+                            Text("Invite friends or family to your greenhouse.")
                             .font(Theme.bodyText)
                             .foregroundStyle(Theme.textDark.opacity(0.75))
                         }
@@ -145,15 +145,7 @@ struct RelationshipCheckInView: View {
                         RoundedRectangle(cornerRadius: 20)
                     )
 
-                    NavigationLink {
-                        InviteRelationshipView()
-                            .environmentObject(appState)
-                            .onAppear {
-                                if selectedChange != "No Recent Changes" {
-                                    appState.saveConnection(name: connectionName)
-                                }
-                            }
-                    } label: {
+                    NavigationLink(value: AppDestination.inviteConnection) {
                         Text("Save Check-In")
                             .font(Theme.buttonText)
                             .frame(maxWidth: .infinity)
@@ -184,8 +176,13 @@ struct RelationshipCheckInView: View {
                         ? 0.5
                         : 1
                     )
+                    .simultaneousGesture(TapGesture().onEnded {
+                        if selectedChange != "No Recent Changes" {
+                            appState.saveConnection(name: connectionName)
+                        }
+                    })
 
-                    Text("Relationship type does not affect how connections are valued.")
+                    Text("All relationship types are valued equally.")
                     .font(Theme.bodyText)
                     .foregroundStyle(Theme.textDark.opacity(0.75))
                     .multilineTextAlignment(.center)

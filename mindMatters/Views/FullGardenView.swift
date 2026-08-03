@@ -5,38 +5,31 @@ struct FullGardenView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        ZStack {
-            Theme.background
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 20) {
+        ScrollView {
+            VStack(spacing: 20) {
                     Image(appState.greenhouseSceneAsset)
                         .resizable()
                         .scaledToFit()
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
                         .padding(.horizontal)
-                        .accessibilityLabel("Your greenhouse garden")
+                        .accessibilityLabel("Your greenhouse")
 
                     gardenStatusCard
                     prioritySummaryCard
                 }
                 .padding(.vertical)
-            }
         }
-        .navigationTitle("Your Garden")
-        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var gardenStatusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Overall Streak: \(appState.currentStreak) days", systemImage: "flame.fill")
+            Label("Plant Health: \(appState.plantHealthScore)%", systemImage: "heart.fill")
                 .font(Theme.rowTitle)
                 .foregroundStyle(Theme.teal)
 
-            if appState.currentWeeklyPlantDay > 0 {
-                Text("Day \(appState.currentWeeklyPlantDay) with your current weekly plant.")
+            if appState.growthDaysOnCurrentPlant > 0 {
+                Text("Growth Day \(appState.growthDaysOnCurrentPlant)")
                     .font(Theme.bodyText)
                     .foregroundStyle(Theme.textDark.opacity(0.75))
             }
@@ -60,11 +53,11 @@ struct FullGardenView: View {
 
     private var prioritySummaryCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Priority Breakdown")
+            Text("Priorities")
                 .font(Theme.sectionTitle)
                 .foregroundStyle(Theme.teal)
 
-            Text("Average focus: \(appState.averagePriorityProgress)%")
+            Text("Avg. \(appState.averagePriorityProgress)%")
                 .font(Theme.bodyText)
                 .foregroundStyle(Theme.textDark.opacity(0.75))
 

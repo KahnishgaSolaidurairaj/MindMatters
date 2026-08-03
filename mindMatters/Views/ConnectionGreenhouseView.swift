@@ -1,73 +1,71 @@
 import SwiftUI
 
 struct ConnectionGreenhouseView: View {
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appState: AppState
     let connectionName: String
 
-    private let currentStreak = 2
-    private let requiredStreak = 5
-
-    var body: some View {
-        ZStack {
-            Theme.background
-                .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 22) {
-                    headerView
-                    greenhouseCard
-                    streakCard
-                    encouragementButton
-                }
-                .padding()
-            }
-        }
-        .navigationBarBackButtonHidden()
+    private var connection: ConnectionProfile? {
+        appState.connections.first { $0.name == connectionName }
+            ?? ConnectionCatalog.existingUsers.first { $0.name == connectionName }
     }
 
-    private var headerView: some View {
-        HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundStyle(Theme.textDark)
-                    .padding(8)
+    private var coOpUnlocked: Bool {
+        (connection?.streak ?? 0) >= 3 || appState.currentStreak >= 3
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 22) {
+                connectionHeader
+                greenhouseCard
+                streakCard
+                coOpButton
+                encouragementButton
             }
+            .padding()
+        }
+    }
 
-            Spacer()
-
+    private var connectionHeader: some View {
+        HStack {
             Text("\(connectionName)'s Greenhouse")
                 .font(Theme.sectionTitle)
                 .foregroundStyle(Theme.textDark)
 
             Spacer()
 
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(.green)
-                    .frame(width: 10, height: 10)
-                Text("Online")
-                    .font(Theme.bodyText)
-                    .foregroundStyle(Theme.textDark.opacity(0.75))
+            if connection?.isOnline == true
+                && appState.privacySettings.onlineStatusVisibility != .nobody {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(.green)
+                        .frame(width: 10, height: 10)
+                    Text("Online")
+                        .font(Theme.bodyText)
+                        .foregroundStyle(Theme.textDark.opacity(0.75))
+                }
             }
         }
     }
 
     private var greenhouseCard: some View {
         VStack(spacing: 16) {
-            Text("New Growth")
+            Text("Current Growth")
                 .font(Theme.rowTitle)
                 .foregroundStyle(Theme.teal)
 
-            PlantImageView(kind: .sunflower, stage: .sprout, height: 110)
+            PlantImageView(
+                kind: connection?.plantKind ?? .sunflower,
+                stage: PlantStage.fromWeeklyStreakDays(connection?.growthDays ?? 1),
+                height: 110
+            )
 
-            Text("Sapling")
+            Text(connection?.focusedPriority.plantDisplayName ?? "Growing")
                 .font(Theme.rowTitle)
                 .foregroundStyle(Theme.textDark)
 
-            Text("\(connectionName) is starting their growth journey.")
+            Text(connection?.focusedPriority.rawValue ?? "Growing")
                 .font(Theme.bodyText)
-                .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.textDark.opacity(0.75))
         }
         .frame(maxWidth: .infinity)
@@ -79,23 +77,19 @@ struct ConnectionGreenhouseView: View {
     private var streakCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Growth Streak", systemImage: "flame.fill")
+                Label("Plant Health", systemImage: "heart.fill")
                     .font(Theme.rowTitle)
                     .foregroundStyle(Theme.textDark)
                 Spacer()
-                Text("\(currentStreak)/\(requiredStreak) days")
+                Text("\(connection?.streak ?? 0) day streak")
                     .font(Theme.bodyText.weight(.semibold))
                     .foregroundStyle(Theme.textDark)
             }
 
-            ProgressView(value: Double(currentStreak), total: Double(requiredStreak))
+            ProgressView(value: Double(connection?.streak ?? 0), total: 3)
                 .tint(Theme.teal)
 
-            Text(
-                currentStreak >= requiredStreak
-                ? "CO-OP mode is unlocked."
-                : "CO-OP unlocks after a 5-day growth streak."
-            )
+            Text(coOpUnlocked ? "CO-OP unlocked!" : "CO-OP unlocks at 3-day streak.")
             .font(Theme.bodyText)
             .foregroundStyle(Theme.textDark.opacity(0.75))
         }
@@ -104,10 +98,21 @@ struct ConnectionGreenhouseView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
+    private var coOpButton: some View {
+        NavigationLink(value: AppDestination.coOpActivities) {
+            Label("View CO-OP Activities", systemImage: "person.3.fill")
+                .font(Theme.buttonText)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(coOpUnlocked ? Theme.teal : Color.gray.opacity(0.4))
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .disabled(!coOpUnlocked)
+    }
+
     private var encouragementButton: some View {
-        NavigationLink {
-            EncouragementNoteView()
-        } label: {
+        NavigationLink(value: AppDestination.encouragementNote) {
             Label("Leave Encouragement", systemImage: "envelope.fill")
                 .font(Theme.buttonText)
                 .frame(maxWidth: .infinity)
@@ -121,6 +126,9 @@ struct ConnectionGreenhouseView: View {
 
 #Preview {
     NavigationStack {
-        ConnectionGreenhouseView(connectionName: "Linus")
+        AppPageShell {
+            ConnectionGreenhouseView(connectionName: "Linus")
+        }
+        .environmentObject(AppState())
     }
 }

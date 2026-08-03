@@ -7,7 +7,8 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showPlantDetails = false
+    @State private var showAddTask = false
+//    @State private var plantScale: CGFloat = 1.0
 
     private let primaryTeal = Theme.teal
     private let darkText = Theme.textDark
@@ -20,39 +21,30 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         topBar
-                        plantOfTheWeekSection
-                        tasksSection
+//                        plantOfTheWeekSection
                         gardenSection
-                        connectionSection
+                        tasksSection
+//                        connectionSection
                     }
                     .padding()
                     .padding(.bottom, 100)
                 }
 
                 BottomStatusBar(
-                    streak: appState.currentStreak,
                     energy: appState.energyPoints,
-                    onEndDay: { appState.endDay() }
+                    highlightEndDay: appState.highlightEndDay,
+                    onEndDay: { appState.endDay() },
+                    onPointsTap: { appState.navigateTo(.rewardsShop) }
                 )
                 .padding(.bottom, 12)
             }
+
+            if appState.showConfetti {
+                ConfettiView()
+            }
         }
-        .navigationBarBackButtonHidden()
-        .sheet(isPresented: $showPlantDetails) {
-            PlantOverviewView()
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $appState.showPriorityBreakdown) {
-            PlantOverviewView()
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $appState.showAppMenu) {
-            AppMenuView()
-                .environmentObject(appState)
-        }
-        .sheet(isPresented: $appState.showResources) {
-            ResourcesHubView()
-        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $appState.showStreakPopup) {
             StreakPopupView().environmentObject(appState)
         }
@@ -60,51 +52,91 @@ struct HomeView: View {
             StreakBrokenView().environmentObject(appState)
         }
         .sheet(isPresented: $appState.showWeeklyPlantPicker) {
-            ChoosePlantView(isReplacingWeeklyPlant: true)
+            WeeklyPlantPickerView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $appState.showPlantingAfterReplacement) {
+            PlantingView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $appState.showJournalReflection) {
+            JournalReflectionView()
+                .environmentObject(appState)
+        }
+        .sheet(isPresented: $showAddTask) {
+            AddCustomTaskView()
                 .environmentObject(appState)
         }
     }
 
     private var topBar: some View {
-        HStack {
-            Button {
-                appState.showAppMenu = true
-            } label: {
-                Image(systemName: "line.3.horizontal")
-                    .font(.title2)
-                    .foregroundStyle(primaryTeal)
-                    .padding(8)
-            }
-            .accessibilityLabel("Open menu")
-
-            Spacer()
-
-            MindMattersLogoView(size: 52)
-
-            Spacer()
-
-            Button {
-                appState.showAppMenu = true
-            } label: {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 34))
-                    .foregroundStyle(primaryTeal)
-            }
-            .accessibilityLabel("Open profile menu")
-        }
+        AppPageTopBar()
     }
 
+    /*
     private var plantOfTheWeekSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Plant of the Week", icon: "flame.fill")
+            HStack {
+                sectionHeader("Plant of the Week", icon: "leaf.fill")
+                Spacer()
+                Button {
+                    appState.navigateTo(.streakCalendar)
+                } label: {
+                    Label("\(appState.currentStreak)", systemImage: "flame.fill")
+                        .font(Theme.bodyText.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.92))
+                        .clipShape(Capsule())
+                }
+                .accessibilityLabel("View activity calendar, \(appState.currentStreak) day streak")
+            }
 
             VStack(spacing: 14) {
-                PlantImageView(
-                    kind: appState.selectedPlantKind,
-                    stage: appState.plantOfTheWeekStage,
-                    isWilted: appState.isStreakPlantWilted,
-                    height: 140
-                )
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Health", systemImage: "heart.fill")
+                            .font(Theme.supportingText)
+                            .foregroundStyle(Theme.textDark.opacity(0.7))
+                        ProgressView(value: Double(appState.plantHealthScore), total: 100)
+                            .tint(appState.isPlantHealthy ? Theme.sage : .orange)
+                        Text("\(appState.plantHealthScore)%")
+                            .font(Theme.supportingText)
+                            .foregroundStyle(Theme.textDark.opacity(0.6))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Growth", systemImage: "arrow.up.circle.fill")
+                            .font(Theme.supportingText)
+                            .foregroundStyle(Theme.textDark.opacity(0.7))
+                        ProgressView(value: appState.todayTaskProgress)
+                            .tint(primaryTeal)
+                        Text("\(appState.completedTaskIDs.count)/\(appState.dailyActivities.count) today")
+                            .font(Theme.supportingText)
+                            .foregroundStyle(Theme.textDark.opacity(0.6))
+                    }
+                }
+
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                        plantScale = 1.12
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation(.spring()) { plantScale = 1.0 }
+                    }
+                } label: {
+                    PlantImageView(
+                        kind: appState.selectedPlantKind,
+                        stage: appState.displayPlantStage,
+                        isWilted: appState.isStreakPlantWilted,
+                        height: 140
+                    )
+                    .scaleEffect(appState.plantGrowthPulse ? 1.08 : plantScale)
+                    .animation(.spring(response: 0.35), value: appState.plantGrowthPulse)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Your weekly plant. Tap to see it grow.")
 
                 HStack {
                     Text(appState.selectedPlantKind.displayName)
@@ -113,34 +145,32 @@ struct HomeView: View {
 
                     Spacer()
 
-                    Text("\(appState.currentStreak) day streak")
+                    Text("Growth Day \(appState.growthDaysOnCurrentPlant)")
                         .font(Theme.bodyText.weight(.semibold))
                         .foregroundStyle(primaryTeal)
                 }
 
-                if appState.currentWeeklyPlantDay > 0 {
-                    Text("Day \(appState.currentWeeklyPlantDay) with this plant")
-                        .font(Theme.bodyText)
-                        .foregroundStyle(Theme.textDark.opacity(0.75))
+                if appState.allDoneToday {
+                    Text("All done — tap End Day.")
+                        .font(Theme.supportingText)
+                        .foregroundStyle(primaryTeal)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Text("Finish all daily tasks to grow your streak. Each new plant starts at day 1 on your next streak day.")
-                    .font(Theme.supportingText)
-                    .foregroundStyle(Theme.textDark.opacity(0.75))
-                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 if appState.canPickNewWeeklyPlant {
                     Button {
                         appState.beginWeeklyPlantReplacement()
                     } label: {
-                        Label("Pick a New Weekly Plant", systemImage: "leaf.circle")
-                            .font(Theme.buttonText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(primaryTeal)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        Label(
+                            appState.isWeeklyPlantMature ? "Pick a New Plant" : "New Weekly Plant",
+                            systemImage: "leaf.circle"
+                        )
+                        .font(Theme.buttonText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(primaryTeal)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 }
             }
@@ -149,10 +179,32 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
+    */
 
     private var tasksSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Today's Tasks", icon: "checkmark.circle.fill")
+            HStack {
+                sectionHeader("Today's Tasks", icon: "checkmark.circle.fill")
+                Spacer()
+                Button {
+                    appState.navigateTo(.streakCalendar)
+                } label: {
+                    Label("\(appState.currentStreak)", systemImage: "flame.fill")
+                        .font(Theme.bodyText.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.92))
+                        .clipShape(Capsule())
+                }
+                .accessibilityLabel("View activity calendar, \(appState.currentStreak) day streak")
+            }
+
+            if appState.metStreakGoalToday {
+                Text("Streak ready — tap End Day.")
+                    .font(Theme.supportingText)
+                    .foregroundStyle(primaryTeal)
+            }
 
             if appState.dailyActivities.isEmpty {
                 Text("Finish intake to get your daily tasks.")
@@ -162,16 +214,32 @@ struct HomeView: View {
                 ForEach(appState.dailyActivities) { task in
                     taskRow(task: task)
                 }
+
+                Button {
+                    showAddTask = true
+                } label: {
+                    Label("Add Task", systemImage: "plus.circle.fill")
+                        .font(Theme.buttonText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .foregroundStyle(primaryTeal)
+                        .background(Color.white.opacity(0.92))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(primaryTeal.opacity(0.35), lineWidth: 1)
+                        )
+                }
             }
         }
     }
 
     private var gardenSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Your Garden", icon: "leaf.circle.fill")
+            sectionHeader("Priority Garden", icon: "leaf.circle.fill")
 
             Button {
-                showPlantDetails = true
+                appState.navigateTo(.priorityBreakdown)
             } label: {
                 VStack(spacing: 12) {
                     HStack(alignment: .bottom, spacing: 6) {
@@ -191,38 +259,32 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity)
                     .background(Color.white.opacity(0.92))
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-
-                    Text("Tap to view your priority breakdown.")
-                        .font(Theme.supportingText)
-                        .foregroundStyle(Theme.textDark.opacity(0.75))
                 }
             }
             .buttonStyle(.plain)
+
+            Button {
+                appState.navigateTo(.greenhouse)
+            } label: {
+                Label("View Greenhouse", systemImage: "house.lodge.fill")
+                    .font(Theme.buttonText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(primaryTeal)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
         }
     }
 
+    /*
     @ViewBuilder
     private var connectionSection: some View {
-        if appState.hasConnection {
-            NavigationLink {
-                ConnectionGreenhouseView(connectionName: appState.connectionName)
+        VStack(spacing: 12) {
+            Button {
+                appState.navigateTo(.coOpActivities)
             } label: {
-                Label(
-                    "Visit \(appState.connectionName)'s Greenhouse",
-                    systemImage: "person.2.fill"
-                )
-                .font(Theme.buttonText)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(primaryTeal)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-        } else {
-            NavigationLink {
-                RelationshipCheckInView()
-            } label: {
-                Label("Add a Connection", systemImage: "person.badge.plus")
+                Label("CO-OP Activities", systemImage: "person.3.fill")
                     .font(Theme.buttonText)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -234,8 +296,38 @@ struct HomeView: View {
                             .stroke(primaryTeal.opacity(0.35), lineWidth: 1)
                     )
             }
+
+            if appState.hasConnection {
+                NavigationLink(value: AppDestination.connectionGreenhouse(appState.connectionName)) {
+                    Label(
+                        "Visit \(appState.connectionName)'s Greenhouse",
+                        systemImage: "person.2.fill"
+                    )
+                    .font(Theme.buttonText)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(primaryTeal)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+            } else {
+                NavigationLink(value: AppDestination.relationshipCheckIn) {
+                    Label("Add a Connection", systemImage: "person.badge.plus")
+                        .font(Theme.buttonText)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white.opacity(0.92))
+                        .foregroundStyle(primaryTeal)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(primaryTeal.opacity(0.35), lineWidth: 1)
+                        )
+                }
+            }
         }
     }
+    */
 
     private func sectionHeader(_ title: String, icon: String) -> some View {
         Label(title, systemImage: icon)
@@ -261,15 +353,23 @@ struct HomeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(task.title)
-                        .font(Theme.rowTitle)
-                        .foregroundStyle(darkText)
-                        .multilineTextAlignment(.leading)
-                        .strikethrough(isDone)
+                    HStack(spacing: 6) {
+                        Text(task.title)
+                            .font(Theme.rowTitle)
+                            .foregroundStyle(darkText)
+                            .multilineTextAlignment(.leading)
+                            .strikethrough(isDone)
 
-                    Text(task.category.priorityLabel)
-                        .font(Theme.bodyText)
-                        .foregroundStyle(Theme.textDark.opacity(0.75))
+                        if task.isCustom {
+                            Text("Custom")
+                                .font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Theme.sage.opacity(0.25))
+                                .foregroundStyle(Theme.teal)
+                                .clipShape(Capsule())
+                        }
+                    }
                 }
 
                 Spacer()
@@ -277,6 +377,7 @@ struct HomeView: View {
                 Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
                     .foregroundStyle(isDone ? primaryTeal : primaryTeal.opacity(0.5))
+                    .symbolEffect(.bounce, value: isDone)
             }
             .padding()
             .background(Color.white.opacity(0.92))
@@ -290,36 +391,24 @@ struct HomeView: View {
 
 struct PlantOverviewView: View {
     @EnvironmentObject var appState: AppState
+    var showLogo: Bool = true
 
     private let primaryTeal = Theme.teal
     private let darkText = Theme.textDark
 
     var body: some View {
-        ZStack {
-            Theme.background.ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 20) {
+        ScrollView {
+            VStack(spacing: 20) {
+                if showLogo {
                     MindMattersLogoView(size: 64)
-
-                    Text("Your Plant Priorities")
-                        .font(Theme.pageTitle)
-                        .foregroundStyle(darkText)
-                        .multilineTextAlignment(.center)
-
-                    Text("Percentages show where your completed tasks are focused.")
-                        .font(Theme.bodyText)
-                        .foregroundStyle(Theme.textDark.opacity(0.75))
-                        .multilineTextAlignment(.center)
-
-                    ForEach(appState.gardenProfiles) { plant in
-                        plantRow(profile: plant)
-                    }
                 }
-                .padding()
+
+                ForEach(appState.gardenProfiles) { plant in
+                    plantRow(profile: plant)
+                }
             }
+            .padding()
         }
-        .presentationDetents([.medium, .large])
     }
 
     private func plantRow(profile: GardenPlantProfile) -> some View {

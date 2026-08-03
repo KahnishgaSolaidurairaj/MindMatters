@@ -46,17 +46,17 @@ struct ActivityListView: View {
                     .padding(.bottom, 100)
                 }
 
-                BottomStatusBar(streak: appState.currentStreak, energy: appState.energyPoints) {
-                    appState.endDay()
-                }
+                BottomStatusBar(
+                    energy: appState.energyPoints,
+                    highlightEndDay: appState.highlightEndDay,
+                    onEndDay: { appState.endDay() },
+                    onPointsTap: { appState.navigateTo(.rewardsShop) }
+                )
                 .padding(.bottom, 12)
             }
         }
         .sheet(isPresented: $appState.showStreakPopup) {
             StreakPopupView().environmentObject(appState)
-        }
-        .sheet(isPresented: $appState.showResources) {
-            ResourcesHubView()
         }
         .sheet(isPresented: $appState.streakBroken) {
             StreakBrokenView().environmentObject(appState)

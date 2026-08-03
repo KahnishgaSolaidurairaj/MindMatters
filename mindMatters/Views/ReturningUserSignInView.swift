@@ -10,7 +10,7 @@ struct ReturningUserSignInView: View {
                 VStack(spacing: 24) {
                     Spacer()
 
-                    MindMattersLogoView(size: 240)
+                    MindMattersLogoView(size: 140)
 
                     Text("Mind Matters")
                         .font(Theme.pageTitle)
@@ -20,6 +20,8 @@ struct ReturningUserSignInView: View {
                         .font(Theme.bodyText)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Theme.textDark.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 32)
 
                     NavigationLink {
                         RelationshipCheckInView()

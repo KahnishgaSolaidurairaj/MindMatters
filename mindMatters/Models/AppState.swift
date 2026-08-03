@@ -1,12 +1,12 @@
 import Combine
 import Foundation
+import SwiftUI
 
 enum AppStage {
     case signIn
     case tutorial
     case intake
     case choosePlant
-    case seedGiven
     case planting
     case home
 }
@@ -14,12 +14,25 @@ enum AppStage {
 final class AppState: ObservableObject {
     @Published var stage: AppStage = .signIn
     @Published var userName: String = ""
+    @Published var username: String = ""
+    @Published var phoneNumber: String = ""
+    @Published var major: String = ""
+    @Published var hobbies: String = ""
+    @Published var bio: String = ""
+    @Published var profileImageData: Data?
+    @Published var focusedPriority: GardenPriority = .physicalWellness
     @Published var selectedPlantKind: PlantKind = .sunflower
+    @Published var priorityPlantMapping: [GardenPriority: PlantKind] = Dictionary(
+        uniqueKeysWithValues: GardenPriority.allCases.map { ($0, $0.plantKind) }
+    )
     @Published var weeklyPlantStartDate: Date = Date()
-    /// Overall streak count when the current weekly plant was chosen.
-    @Published var streakAtWeeklyPlantStart: Int = 0
+    @Published var growthDaysAtPlantStart: Int = 0
     @Published var showWeeklyPlantPicker: Bool = false
+    @Published var showPlantingAfterReplacement: Bool = false
 
+    @Published var categoryPreferences: [CategoryPreference] = TaskCategory.allCases.map {
+        CategoryPreference(category: $0)
+    }
     @Published var likedTasks: [TaskItem] = []
     @Published var dailyActivities: [TaskItem] = []
     @Published var completedTaskIDs: Set<UUID> = []
@@ -28,17 +41,40 @@ final class AppState: ObservableObject {
 
     @Published var dislikedTasks: [TaskItem] = []
     @Published var currentStreak: Int = 0
+    @Published var growthDaysOnCurrentPlant: Int = 0
     @Published var consecutiveMissedDays: Int = 0
     @Published var showStreakPopup: Bool = false
     @Published var streakBroken: Bool = false
     @Published var redemptionTask: TaskItem?
+    @Published var activityHistory: [ActivityDayRecord] = []
+    @Published var earnedRewards: [StreakReward] = []
 
     @Published var energyPoints: Int = 0
-    @Published var showResources: Bool = false
-    @Published var showAppMenu: Bool = false
-    @Published var showPriorityBreakdown: Bool = false
+    @Published var navigationPath = NavigationPath()
+
+    @Published var ownedShopItemIDs: Set<String> = []
+    @Published var unlockedGardenBeds: Int = 1
+    @Published var potLevel: Int = 1
+    @Published var plantLevel: Int = 1
+    @Published var transplantedPlants: [TransplantedPlant] = []
+    @Published var equippedProfileFrame: String?
+    @Published var equippedPin: String?
+    @Published var equippedPotStyle: String?
+
+    @Published var privacySettings = PrivacySettings()
+    @Published var connections: [ConnectionProfile] = []
     @Published var connectionName: String = ""
     @Published var hasConnection: Bool = false
+    @Published var coOpActivities: [CoOpActivity] = ConnectionCatalog.coOpActivities
+
+    @Published var journalEntries: [JournalEntry] = []
+    @Published var showJournalReflection: Bool = false
+    @Published var pendingJournalTask: TaskItem?
+    @Published var showConfetti: Bool = false
+    @Published var plantGrowthPulse: Bool = false
+    @Published var highlightEndDay: Bool = false
+    @Published var taskCompletionCount: Int = 0
+
     @Published private(set) var completedCountByPriority: [GardenPriority: Int] = {
         Dictionary(uniqueKeysWithValues: GardenPriority.allCases.map { ($0, 0) })
     }()
@@ -47,18 +83,40 @@ final class AppState: ObservableObject {
         completedCountByPriority.values.reduce(0, +)
     }
 
+    var todayTaskProgress: Double {
+        guard !dailyActivities.isEmpty else { return 0 }
+        return Double(completedTaskIDs.count) / Double(dailyActivities.count)
+    }
+
+    /// Streak-driven vitality (0–100). Keeps the plant healthy; separate from growth.
+    var plantHealthScore: Int {
+        if streakBroken { return 15 }
+        if consecutiveMissedDays >= 3 { return max(20, 100 - consecutiveMissedDays * 15) }
+        guard currentStreak > 0 else { return 60 }
+        return min(100, 60 + currentStreak * 5)
+    }
+
+    var isPlantHealthy: Bool {
+        plantHealthScore >= 40 && !streakBroken
+    }
+
     var gardenProfiles: [GardenPlantProfile] {
         GardenPriority.allCases.map { priority in
             let progress = progressPercentage(for: priority)
             return GardenPlantProfile(
                 priority: priority,
+                kind: plantKind(for: priority),
                 stage: PlantStage.from(progressPercentage: progress),
                 progress: progress
             )
         }
     }
 
-    /// Picks a greenhouse illustration from priority balance and weekly streak progress.
+    /// Returns the plant the user assigned to a garden priority.
+    func plantKind(for priority: GardenPriority) -> PlantKind {
+        priorityPlantMapping[priority] ?? priority.plantKind
+    }
+
     var greenhouseSceneAsset: String {
         let profiles = gardenProfiles
         let neglectedCount = profiles.filter { $0.progress == 0 }.count
@@ -67,13 +125,12 @@ final class AppState: ObservableObject {
             ? 0
             : progressValues.reduce(0, +) / progressValues.count
         let spread = (progressValues.max() ?? 0) - (progressValues.min() ?? 0)
-        let streakDays = currentStreak
 
-        if totalCompletedTasks == 0 && streakDays == 0 {
+        if totalCompletedTasks == 0 && growthDaysOnCurrentPlant == 0 {
             return GardenCatalog.starterGreenhouse
         }
 
-        if streakBroken || (neglectedCount >= 2 && streakDays < 3) {
+        if !isPlantHealthy || (neglectedCount >= 2 && currentStreak < 3) {
             return GardenCatalog.strugglingGreenhouse
         }
 
@@ -81,44 +138,38 @@ final class AppState: ObservableObject {
             return GardenCatalog.strugglingGreenhouse
         }
 
-        let hasStrongStreak = streakDays >= 5
-        let hasFullWeeklyStreak = streakDays >= 7
+        let hasStrongStreak = currentStreak >= 5
+        let hasFullWeeklyGrowth = growthDaysOnCurrentPlant >= 7
         let hasHealthyPriorities = averageProgress >= 30 && neglectedCount <= 1
 
-        if (hasFullWeeklyStreak && hasHealthyPriorities)
+        if (hasFullWeeklyGrowth && hasHealthyPriorities)
             || (hasStrongStreak && averageProgress >= 45 && spread <= 35) {
             return GardenCatalog.flourishingGreenhouse
         }
 
-        if streakDays <= 2 && averageProgress < 25 {
+        if growthDaysOnCurrentPlant <= 2 && averageProgress < 25 {
             return GardenCatalog.earlyStreakGreenhouse
         }
 
-        if streakDays >= 3 || averageProgress >= 20 {
+        if growthDaysOnCurrentPlant >= 3 || averageProgress >= 20 {
             return GardenCatalog.growingGreenhouse
         }
 
         return GardenCatalog.starterGreenhouse
     }
 
-    /// Short explanation of why the current greenhouse scene was chosen.
     var greenhouseSceneDescription: String {
-        let asset = greenhouseSceneAsset
-
-        switch asset {
+        switch greenhouseSceneAsset {
         case GardenCatalog.flourishingGreenhouse:
-            return "Your \(currentStreak)-day streak and balanced priorities keep the greenhouse thriving."
+            return "Your greenhouse is thriving."
         case GardenCatalog.strugglingGreenhouse:
-            if streakBroken {
-                return "A broken streak and uneven priorities need attention — your greenhouse looks quiet."
-            }
-            return "Some priorities need care. Focus on neglected areas to brighten your garden."
+            return streakBroken ? "Plant health needs care." : "Some priorities need attention."
         case GardenCatalog.earlyStreakGreenhouse:
-            return "Your streak is just starting. Keep completing daily tasks to grow your garden."
+            return "Your plant is growing."
         case GardenCatalog.growingGreenhouse:
-            return "Steady streak progress and task activity are helping your garden grow."
+            return "Steady progress — keep it up."
         default:
-            return "Complete tasks and build your streak to bring your greenhouse to life."
+            return "Complete tasks to grow. Check in daily for health."
         }
     }
 
@@ -128,6 +179,15 @@ final class AppState: ObservableObject {
         return values.reduce(0, +) / values.count
     }
 
+    /// Task-driven growth stage with same-day micro progress.
+    var displayPlantStage: PlantStage {
+        let stages = PlantStage.allCases
+        let baseIndex = stages.firstIndex(of: plantGrowthStage) ?? 0
+        let dayBonus = min(taskCompletionCount, max(dailyActivities.count, 1)) / 2
+        let index = min(baseIndex + dayBonus, stages.count - 1)
+        return stages[index]
+    }
+
     func progressPercentage(for priority: GardenPriority) -> Int {
         let total = totalCompletedTasks
         guard total > 0 else { return 0 }
@@ -135,28 +195,37 @@ final class AppState: ObservableObject {
         return Int((Double(count) / Double(total) * 100).rounded())
     }
 
-    /// Growth stage for the user's weekly streak plant — separate from category priorities.
     var streakPlantStage: PlantStage {
-        plantOfTheWeekStage
+        plantGrowthStage
     }
 
     var isStreakPlantWilted: Bool {
-        streakBroken
+        !isPlantHealthy
     }
 
-    /// Days completed on the current weekly plant since it was chosen.
     var currentWeeklyPlantDay: Int {
-        max(0, currentStreak - streakAtWeeklyPlantStart)
+        growthDaysOnCurrentPlant
     }
 
-    /// Weekly plant growth reflects days on this plant — one stage per streak day on the plant.
+    /// Growth comes from completing all daily tasks, not from streak count.
+    var plantGrowthStage: PlantStage {
+        PlantStage.fromWeeklyStreakDays(growthDaysOnCurrentPlant)
+    }
+
     var plantOfTheWeekStage: PlantStage {
-        PlantStage.fromWeeklyStreakDays(currentWeeklyPlantDay)
+        plantGrowthStage
     }
 
-    /// True when the user may choose a new weekly plant.
+    var isWeeklyPlantMature: Bool {
+        plantGrowthStage == .blooming
+    }
+
     var canPickNewWeeklyPlant: Bool {
-        streakBroken || currentWeeklyPlantDay >= 7 || hasWeeklyPlantPeriodEnded
+        streakBroken || growthDaysOnCurrentPlant >= 7 || hasWeeklyPlantPeriodEnded || isWeeklyPlantMature
+    }
+
+    var nextStreakReward: StreakReward? {
+        ConnectionCatalog.streakRewards.first { $0.streakDay > currentStreak }
     }
 
     private var hasWeeklyPlantPeriodEnded: Bool {
@@ -169,29 +238,44 @@ final class AppState: ObservableObject {
     }
 
     func endDay() {
-        if allDoneToday {
+        highlightEndDay = false
+        taskCompletionCount = 0
+        let metStreakGoal = metStreakGoalToday
+
+        if metStreakGoal {
             currentStreak += 1
             consecutiveMissedDays = 0
-            if redemptionTask != nil {
-                redemptionTask = nil
-            }
+            growthDaysOnCurrentPlant += 1
+            streakBroken = false
+            if redemptionTask != nil { redemptionTask = nil }
+            applyStreakReward(for: currentStreak)
             showStreakPopup = true
         } else {
             consecutiveMissedDays += 1
             if consecutiveMissedDays >= 5 && currentStreak > 0 {
                 currentStreak = 0
-                streakAtWeeklyPlantStart = 0
+                growthDaysAtPlantStart = growthDaysOnCurrentPlant
                 streakBroken = true
                 redemptionTask = dislikedTasks.randomElement()
             }
         }
 
+        let completedTasks = dailyActivities
+            .filter { completedTaskIDs.contains($0.id) }
+            .map { CompletedTaskRecord(from: $0) }
+
+        activityHistory.append(
+            ActivityDayRecord(
+                date: Date(),
+                completedAllTasks: metStreakGoal,
+                streakDay: currentStreak,
+                energyEarned: metStreakGoal ? 10 * completedTasks.count : 0,
+                completedTasks: completedTasks
+            )
+        )
+
         completedTaskIDs.removeAll()
-        var picks = TaskDatabase.recommend(basedOn: likedTasks, excluding: [], count: 3)
-        if let redemption = redemptionTask {
-            picks = Array(picks.prefix(2)) + [redemption]
-        }
-        dailyActivities = picks
+        refreshDailyActivities()
     }
 
     func acceptRedemption() {
@@ -199,8 +283,15 @@ final class AppState: ObservableObject {
     }
 
     func signIn(name: String) {
-        userName = name.isEmpty ? "there" : name
+        updateUserName(name)
         stage = .tutorial
+    }
+
+    /// Persists the display name and derived username slug.
+    func updateUserName(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        userName = trimmed.isEmpty ? "Guest" : trimmed
+        username = userName.lowercased().replacingOccurrences(of: " ", with: "")
     }
 
     func finishTutorial() {
@@ -208,12 +299,22 @@ final class AppState: ObservableObject {
     }
 
     func finishIntake() {
-        var picks = TaskDatabase.recommend(basedOn: likedTasks, excluding: [], count: 3)
-        if picks.count < 3 {
-            picks = Array(Set(picks + likedTasks).prefix(3))
-        }
-        dailyActivities = picks
+        dailyActivities = TaskDatabase.recommend(basedOn: categoryPreferences, excluding: [], count: TaskDatabase.dailyTaskCount)
+        focusedPriority = topCategoryPreference
         stage = .choosePlant
+    }
+
+    func applyPriorityPlantMapping(_ mapping: [GardenPriority: PlantKind]) {
+        priorityPlantMapping = mapping
+        selectedPlantKind = plantKind(for: focusedPriority)
+        weeklyPlantStartDate = Date()
+        growthDaysAtPlantStart = 0
+        growthDaysOnCurrentPlant = 0
+        stage = .planting
+    }
+
+    func savePriorityPlantMapping(_ mapping: [GardenPriority: PlantKind]) {
+        priorityPlantMapping = mapping
     }
 
     func selectPlant(_ kind: PlantKind) {
@@ -223,22 +324,23 @@ final class AppState: ObservableObject {
             return
         }
         weeklyPlantStartDate = Date()
-        streakAtWeeklyPlantStart = 0
-        stage = .seedGiven
+        growthDaysAtPlantStart = 0
+        growthDaysOnCurrentPlant = 0
+        stage = .planting
     }
 
-    /// Presents plant selection when the current weekly plant cycle is complete.
     func beginWeeklyPlantReplacement() {
         showWeeklyPlantPicker = true
     }
 
-    /// Starts a fresh weekly plant without replaying onboarding or resetting the overall streak.
     func replaceWeeklyPlant(with kind: PlantKind) {
         selectedPlantKind = kind
         weeklyPlantStartDate = Date()
-        streakAtWeeklyPlantStart = currentStreak
+        growthDaysAtPlantStart = growthDaysOnCurrentPlant
+        growthDaysOnCurrentPlant = 0
         streakBroken = false
         showWeeklyPlantPicker = false
+        showPlantingAfterReplacement = true
     }
 
     func plantSeed() {
@@ -246,7 +348,10 @@ final class AppState: ObservableObject {
     }
 
     func confirmPlanting() {
-        stage = .home
+        showPlantingAfterReplacement = false
+        if stage == .planting {
+            stage = .home
+        }
     }
 
     func saveConnection(name: String) {
@@ -254,21 +359,283 @@ final class AppState: ObservableObject {
         hasConnection = !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    func toggleComplete(_ task: TaskItem) {
-        let priority = GardenPriority.from(taskCategory: task.category)
+    func addConnection(from user: DiscoverableUser) {
+        let profile = ConnectionProfile(
+            name: user.name,
+            username: user.username,
+            streak: 0,
+            growthDays: 0,
+            plantKind: user.focusedPriority.plantKind,
+            isOnline: true,
+            focusedPriority: user.focusedPriority
+        )
+        connections.append(profile)
+        connectionName = user.name
+        hasConnection = true
+    }
 
+    func findExistingConnection(query: String) -> ConnectionProfile? {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return nil }
+        return ConnectionCatalog.existingUsers.first {
+            $0.name.lowercased().contains(trimmed)
+                || $0.username.lowercased() == trimmed
+        }
+    }
+
+    func connectExisting(_ profile: ConnectionProfile) {
+        guard !connections.contains(where: { $0.username == profile.username }) else { return }
+        connections.append(profile)
+        connectionName = profile.name
+        hasConnection = true
+    }
+
+    func discoverUsers(matching priority: GardenPriority?) -> [DiscoverableUser] {
+        let users = ConnectionCatalog.discoverableUsers
+        guard let priority else { return users.sorted { $0.matchScore > $1.matchScore } }
+        return users
+            .filter { $0.focusedPriority == priority }
+            .sorted { $0.matchScore > $1.matchScore }
+    }
+
+    func toggleComplete(_ task: TaskItem) {
         if completedTaskIDs.contains(task.id) {
             completedTaskIDs.remove(task.id)
             energyPoints = max(0, energyPoints - 10)
-            completedCountByPriority[priority] = max(0, completedCountByPriority[priority, default: 0] - 1)
+            applyGardenCredit(for: task, adding: false)
+            taskCompletionCount = max(0, taskCompletionCount - 1)
         } else {
             completedTaskIDs.insert(task.id)
             energyPoints += 10
-            completedCountByPriority[priority, default: 0] += 1
+            applyGardenCredit(for: task, adding: true)
+            taskCompletionCount += 1
+            pendingJournalTask = task
+            showJournalReflection = true
+            triggerPlantGrowthFeedback()
         }
+    }
+
+    func addCustomTask(title: String, category: TaskCategory) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let task = TaskItem(
+            title: trimmed,
+            detail: "Your custom task for today.",
+            category: category,
+            style: .neutral,
+            minutes: 10,
+            isCustom: true
+        )
+        dailyActivities.append(task)
+    }
+
+    func saveJournalEntry(text: String) {
+        guard let task = pendingJournalTask else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        journalEntries.append(
+            JournalEntry(taskID: task.id, taskTitle: task.title, text: trimmed, date: Date())
+        )
+        dismissJournalReflection()
+    }
+
+    /// Returns completed tasks for a calendar day (saved history first, then live today).
+    func completedTasks(on date: Date) -> [CompletedTaskRecord] {
+        let calendar = Calendar.current
+        if let record = activityHistory.last(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+            return record.completedTasks
+        }
+        if calendar.isDateInToday(date) {
+            return dailyActivities
+                .filter { completedTaskIDs.contains($0.id) }
+                .map { CompletedTaskRecord(from: $0) }
+        }
+        return []
+    }
+
+    /// Finds a journal entry linked to a completed task on the given day.
+    func journalEntry(for task: CompletedTaskRecord, on date: Date) -> JournalEntry? {
+        journalEntries.first { entry in
+            Calendar.current.isDate(entry.date, inSameDayAs: date) && entry.taskID == task.id
+        }
+    }
+
+    /// Activity summary for a calendar day, if one exists.
+    func activityRecord(for date: Date) -> ActivityDayRecord? {
+        activityHistory.last { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    }
+
+    func dismissJournalReflection() {
+        showJournalReflection = false
+        pendingJournalTask = nil
+    }
+
+    func updateCategoryPreference(_ preference: CategoryPreference) {
+        guard let index = categoryPreferences.firstIndex(where: { $0.category == preference.category }) else { return }
+        categoryPreferences[index] = preference
+    }
+
+    func refreshDailyActivities() {
+        var picks = TaskDatabase.recommend(
+            basedOn: categoryPreferences,
+            excluding: [],
+            count: TaskDatabase.dailyTaskCount
+        )
+        if let redemption = redemptionTask {
+            picks = Array(picks.prefix(TaskDatabase.dailyTaskCount - 1)) + [redemption]
+        }
+        dailyActivities = picks
+    }
+
+    private var topCategoryPreference: GardenPriority {
+        let top = categoryPreferences.max { $0.combinedScore < $1.combinedScore }
+        return GardenPriority.from(taskCategory: top?.category ?? .mentalHealth)
+    }
+
+    private func applyStreakReward(for streakDay: Int) {
+        guard let reward = ConnectionCatalog.streakRewards.first(where: { $0.streakDay == streakDay }) else { return }
+        guard !earnedRewards.contains(where: { $0.streakDay == streakDay }) else { return }
+        earnedRewards.append(reward)
+        energyPoints += reward.energyBonus
+    }
+
+    private func triggerPlantGrowthFeedback() {
+        plantGrowthPulse = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.plantGrowthPulse = false
+        }
+
+        if metStreakGoalToday {
+            showConfetti = true
+            highlightEndDay = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                self?.showConfetti = false
+            }
+        }
+    }
+
+    private func applyGardenCredit(for task: TaskItem, adding: Bool) {
+        for (category, weight) in task.effectiveWeights where weight >= 25 {
+            let priority = GardenPriority.from(taskCategory: category)
+            if adding {
+                completedCountByPriority[priority, default: 0] += 1
+            } else {
+                completedCountByPriority[priority] = max(0, completedCountByPriority[priority, default: 0] - 1)
+            }
+        }
+    }
+
+    var completedTasksTodayCount: Int {
+        completedTaskIDs.count
+    }
+
+    /// True when the user has finished enough tasks to count toward today's streak.
+    var metStreakGoalToday: Bool {
+        completedTasksTodayCount >= TaskDatabase.minimumTasksForStreak
     }
 
     var allDoneToday: Bool {
         !dailyActivities.isEmpty && dailyActivities.allSatisfy { completedTaskIDs.contains($0.id) }
+    }
+
+    func navigateToHome() {
+        navigationPath = NavigationPath()
+    }
+
+    func navigateToMenu() {
+        navigationPath.append(AppDestination.menu)
+    }
+
+    func navigateTo(_ destination: AppDestination) {
+        navigationPath.append(destination)
+    }
+
+    var canTransplantCurrentPlant: Bool {
+        isWeeklyPlantMature
+            && transplantedPlants.count < unlockedGardenBeds
+            && !transplantedPlants.contains(where: { $0.kind == selectedPlantKind })
+    }
+
+    func ownsShopItem(_ item: ShopItem) -> Bool {
+        switch item.id {
+        case "upgrade_pot":
+            return potLevel >= RewardsCatalog.maxPotLevel
+        case "upgrade_plant":
+            return plantLevel >= RewardsCatalog.maxPlantLevel
+        case "bed_second":
+            return unlockedGardenBeds >= 2
+        case "bed_third":
+            return unlockedGardenBeds >= 3
+        default:
+            return ownedShopItemIDs.contains(item.id)
+        }
+    }
+
+    @discardableResult
+    func purchaseShopItem(_ item: ShopItem) -> String {
+        guard !ownsShopItem(item) else { return "You already own this item." }
+        guard energyPoints >= item.cost else { return "Not enough Bloom Points." }
+        guard plantLevel >= item.requiredPlantLevel else { return "Requires Plant Level \(item.requiredPlantLevel)." }
+
+        switch item.id {
+        case "upgrade_pot":
+            guard potLevel < RewardsCatalog.maxPotLevel else { return "Pot is already max level." }
+            energyPoints -= item.cost
+            potLevel += 1
+            return "Pot leveled up to \(potLevel)!"
+
+        case "upgrade_plant":
+            guard plantLevel < RewardsCatalog.maxPlantLevel else { return "Plant is already max level." }
+            energyPoints -= item.cost
+            plantLevel += 1
+            return "Plant leveled up to \(plantLevel)!"
+
+        case "bed_second":
+            guard unlockedGardenBeds < 2 else { return "Second bed already unlocked." }
+            energyPoints -= item.cost
+            unlockedGardenBeds = 2
+            ownedShopItemIDs.insert(item.id)
+            return "Second flower bed unlocked!"
+
+        case "bed_third":
+            guard unlockedGardenBeds < 3 else { return "Third bed already unlocked." }
+            energyPoints -= item.cost
+            unlockedGardenBeds = 3
+            ownedShopItemIDs.insert(item.id)
+            return "Third flower bed unlocked!"
+
+        default:
+            energyPoints -= item.cost
+            ownedShopItemIDs.insert(item.id)
+            applyCosmeticEquip(for: item)
+            return "\(item.name) unlocked!"
+        }
+    }
+
+    @discardableResult
+    func transplantCurrentPlant() -> Bool {
+        guard canTransplantCurrentPlant else { return false }
+        let bedIndex = transplantedPlants.count
+        transplantedPlants.append(
+            TransplantedPlant(
+                name: selectedPlantKind.displayName,
+                kind: selectedPlantKind,
+                bedIndex: bedIndex,
+                transplantedAt: Date()
+            )
+        )
+        growthDaysOnCurrentPlant = 0
+        return true
+    }
+
+    private func applyCosmeticEquip(for item: ShopItem) {
+        switch item.cosmeticKind {
+        case .profileFrame: equippedProfileFrame = item.name
+        case .pin: equippedPin = item.name
+        case .pot: equippedPotStyle = item.name
+        case .none: break
+        }
     }
 }
