@@ -59,7 +59,9 @@ struct CoOpActivitiesView: View {
                 Text(activity.title)
                     .font(Theme.rowTitle)
                     .foregroundStyle(Theme.textDark)
-                Spacer()
+                    .wrapping()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer(minLength: 8)
                 Text("\(activity.participantCount) people")
                     .font(Theme.supportingText)
                     .foregroundStyle(Theme.teal)
@@ -68,6 +70,7 @@ struct CoOpActivitiesView: View {
             Text(activity.detail)
                 .font(Theme.bodyText)
                 .foregroundStyle(Theme.textDark.opacity(0.75))
+                .wrapping()
 
             Label(activity.priority.rawValue, systemImage: "leaf.fill")
                 .font(Theme.supportingText)

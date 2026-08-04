@@ -5,7 +5,7 @@ struct AddCustomTaskView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
-    @State private var selectedCategory: TaskCategory = .mentalHealth
+    @State private var selectedCategory: TaskCategory = .physical
 
     var body: some View {
         NavigationStack {

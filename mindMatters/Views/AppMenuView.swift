@@ -104,6 +104,8 @@ struct AppMenuView: View {
             Text(title)
                 .font(Theme.rowTitle)
                 .foregroundStyle(Theme.textDark)
+                .wrapping()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
 

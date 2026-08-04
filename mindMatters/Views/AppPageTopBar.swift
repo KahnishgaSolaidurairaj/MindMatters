@@ -15,6 +15,7 @@ struct AppPageTopBar: View {
                     .padding(8)
                     .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("Open menu")
 
             Spacer()
@@ -25,6 +26,7 @@ struct AppPageTopBar: View {
                 MindMattersLogoView(size: 52)
                     .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("Go to home")
 
             Spacer()
@@ -35,6 +37,7 @@ struct AppPageTopBar: View {
                 profileButtonImage
                     .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("Open profile")
         }
         .padding(.horizontal, 4)

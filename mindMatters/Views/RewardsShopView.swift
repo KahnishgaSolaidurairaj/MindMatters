@@ -82,12 +82,12 @@ struct RewardsShopView: View {
             Text(value)
                 .font(Theme.rowTitle)
                 .foregroundStyle(Theme.textDark)
-                .lineLimit(1)
+                .wrapping(.center)
 
             Text(label)
                 .font(Theme.supportingText)
                 .foregroundStyle(Theme.textDark.opacity(0.6))
-                .lineLimit(1)
+                .wrapping(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -156,15 +156,18 @@ struct RewardsShopView: View {
                     Text(item.name)
                         .font(Theme.rowTitle)
                         .foregroundStyle(Theme.textDark)
+                        .wrapping()
                     Text(item.detail)
                         .font(Theme.bodyText)
                         .foregroundStyle(Theme.textDark.opacity(0.75))
+                        .wrapping()
                     if item.requiredPlantLevel > 1 {
                         Text("Plant Lv. \(item.requiredPlantLevel)+")
                             .font(Theme.supportingText)
                             .foregroundStyle(meetsLevel ? Theme.teal : .orange)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
 

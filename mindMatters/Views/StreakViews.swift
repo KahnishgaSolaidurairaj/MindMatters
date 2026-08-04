@@ -8,28 +8,36 @@ struct StreakPopupView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "flame.fill")
-                .resizable()
-                .frame(width: 70, height: 70)
-                .foregroundColor(.orange)
+        ZStack {
+            FlowerPetalConfettiView()
 
-            Text("\(appState.currentStreak) Day Streak!")
-                .font(Theme.pageTitle)
+            VStack(spacing: 20) {
+                Image(systemName: "flame.fill")
+                    .resizable()
+                    .frame(width: 70, height: 70)
+                    .foregroundColor(.orange)
 
-            if let reward = latestReward {
-                Label("+\(reward.energyBonus) \(BloomCurrency.displayName)", systemImage: BloomCurrency.icon)
-                    .font(Theme.bodyText.weight(.semibold))
-                    .foregroundStyle(Theme.teal)
+                Text("\(appState.currentStreak) Day Streak!")
+                    .font(Theme.pageTitle)
+
+                if let reward = latestReward {
+                    Label("+\(reward.energyBonus) \(BloomCurrency.displayName)", systemImage: BloomCurrency.icon)
+                        .font(Theme.bodyText.weight(.semibold))
+                        .foregroundStyle(Theme.teal)
+                }
+
+                Button("Nice!") {
+                    appState.showStreakPopup = false
+                }
+                .font(Theme.buttonText)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 36)
+                .padding(.vertical, 12)
+                .background(Theme.sage)
+                .clipShape(Capsule())
             }
-
-            Button("Nice!") {
-                appState.showStreakPopup = false
-            }
-            .font(Theme.buttonText)
-            .buttonStyle(.borderedProminent)
+            .padding()
         }
-        .padding()
     }
 }
 
@@ -56,9 +64,12 @@ struct StreakBrokenView: View {
                 VStack(spacing: 8) {
                     Text(task.title)
                         .font(Theme.rowTitle)
+                        .wrapping(.center)
                     Text(task.detail)
                         .font(Theme.bodyText)
                         .foregroundColor(Theme.textDark.opacity(0.75))
+                        .wrapping(.center)
+                        .frame(maxWidth: .infinity)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)

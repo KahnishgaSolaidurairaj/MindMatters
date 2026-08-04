@@ -6,6 +6,22 @@ struct CampusResource: Identifiable {
     let detail: String
     let phone: String?
     let location: String?
+    /// Full address query for Apple Maps directions when `location` is tappable.
+    let mapsDirectionsQuery: String?
+
+    init(
+        title: String,
+        detail: String,
+        phone: String?,
+        location: String?,
+        mapsDirectionsQuery: String? = nil
+    ) {
+        self.title = title
+        self.detail = detail
+        self.phone = phone
+        self.location = location
+        self.mapsDirectionsQuery = mapsDirectionsQuery
+    }
 }
 
 enum CampusResourceDatabase {
@@ -14,13 +30,15 @@ enum CampusResourceDatabase {
             title: "Individual Counseling",
             detail: "One-on-one sessions with a licensed counselor at the UIC Counseling Center. Confidential and free for enrolled students.",
             phone: "(312) 996-3490",
-            location: "Student Services Building, Suite 2010"
+            location: "Student Services Building, Suite 2010",
+            mapsDirectionsQuery: "Student Services Building Suite 2010, University of Illinois Chicago, Chicago, IL"
         ),
         CampusResource(
             title: "Group Therapy",
             detail: "Weekly small-group sessions (4-8 students) led by 1-2 trained group therapists. No session limit, in-person or virtual.",
             phone: "(312) 996-3490",
-            location: "Student Services Building, Suite 2010"
+            location: "Student Services Building, Suite 2010",
+            mapsDirectionsQuery: "Student Services Building Suite 2010, University of Illinois Chicago, Chicago, IL"
         ),
         CampusResource(
             title: "24/7 Crisis Line",

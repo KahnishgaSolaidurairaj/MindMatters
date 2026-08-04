@@ -23,6 +23,7 @@ struct SelectableCapsuleButton: View {
         Button(action: action) {
             Text(title)
                 .font(Theme.buttonText)
+                .wrapping(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
                 .foregroundStyle(isSelected ? .white : Theme.teal)
@@ -49,6 +50,7 @@ struct PrimaryCapsuleButton: View {
             Text(title)
                 .font(Theme.buttonText)
                 .foregroundStyle(.white)
+                .wrapping(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(isEnabled ? Theme.teal : Color.gray.opacity(0.4))

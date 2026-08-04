@@ -36,7 +36,7 @@ enum PlantKind: String, CaseIterable, Identifiable {
         case .cactus: return "Steady, resilient, low-maintenance growth"
         case .rose: return "Intentional care, blooming through consistency"
         case .sunflower: return "Turning toward light, social warmth"
-        case .tulip: return "Opening up, physical and mental wellness"
+        case .tulip: return "Opening up, physical wellness"
         }
     }
 
@@ -123,9 +123,9 @@ enum GardenPriority: String, CaseIterable, Identifiable {
     static func from(taskCategory: TaskCategory) -> GardenPriority {
         switch taskCategory {
         case .academic: return .academicGrowth
-        case .finance: return .financialGrowth
+        case .financial: return .financialGrowth
         case .social: return .socialGrowth
-        case .mentalHealth: return .physicalWellness
+        case .physical: return .physicalWellness
         }
     }
 }
@@ -151,24 +151,21 @@ struct GardenPlantProfile: Identifiable {
 }
 
 enum GardenCatalog {
-    static let backgroundAssets = [
-        "greenhouse_assets-01",
-        "greenhouse_assets-02",
-        "greenhouse_assets-03",
-        "greenhouse_assets-04",
-        "greenhouse_assets-05",
-    ]
+    /// Dead or untended plants — shown when plant health is 50% or lower.
+    static let neglectedGreenhouse = "greenhouse_assets-01"
+    /// First stage of growth.
+    static let firstGrowthGreenhouse = "greenhouse_assets-02"
+    /// Thriving, flourishing growth.
+    static let flourishingGreenhouse = "greenhouse_assets-03"
+    /// Second stage of growth.
+    static let secondGrowthGreenhouse = "greenhouse_assets-04"
+    /// Seed start — little or no garden activity yet.
+    static let seedGreenhouse = "greenhouse_assets-05"
 
-    /// Mixed growth — priorities are progressing but not yet balanced.
-    static let growingGreenhouse = backgroundAssets[0]
-    /// Starter greenhouse — little or no garden activity yet.
-    static let starterGreenhouse = backgroundAssets[1]
-    /// Flourishing greenhouse — strong streak and healthy priorities.
-    static let flourishingGreenhouse = backgroundAssets[2]
-    /// Struggling greenhouse — neglected priorities or a broken streak.
-    static let strugglingGreenhouse = backgroundAssets[3]
-    /// Early streak greenhouse — first few streak days with early sprouts.
-    static let earlyStreakGreenhouse = backgroundAssets[4]
+    static let starterGreenhouse = seedGreenhouse
+    static let strugglingGreenhouse = neglectedGreenhouse
+    static let earlyStreakGreenhouse = firstGrowthGreenhouse
+    static let growingGreenhouse = secondGrowthGreenhouse
 }
 
 enum MindMattersAssets {

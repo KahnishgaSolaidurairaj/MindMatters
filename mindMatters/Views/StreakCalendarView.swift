@@ -195,12 +195,13 @@ struct StreakCalendarView: View {
                 Text(task.title)
                     .font(Theme.bodyText.weight(.semibold))
                     .foregroundStyle(Theme.textDark)
-                    .multilineTextAlignment(.leading)
+                    .wrapping()
 
                 Text(task.categoryLabels)
                     .font(Theme.supportingText)
                     .foregroundStyle(Theme.textDark.opacity(0.6))
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
 
@@ -228,7 +229,7 @@ struct StreakCalendarView: View {
             return record.completedTasks.isEmpty ? Theme.sage.opacity(0.4) : Theme.teal.opacity(0.45)
         }
         if completedCount == 0 { return Color.white }
-        if completedCount >= TaskDatabase.minimumTasksForStreak { return Theme.teal }
+        if completedCount >= TaskDatabase.requiredCategoriesForStreak { return Theme.teal }
         return Theme.teal.opacity(0.45)
     }
 
@@ -283,17 +284,19 @@ private struct JournalEntryDetailView: View {
             Text(entry.taskTitle)
                 .font(Theme.rowTitle)
                 .foregroundStyle(Theme.textDark)
+                .wrapping()
 
             Text(entry.date, format: .dateTime.month().day().year())
                 .font(Theme.supportingText)
                 .foregroundStyle(Theme.textDark.opacity(0.6))
 
-            Text(entry.text)
-                .font(Theme.bodyText)
-                .foregroundStyle(Theme.textDark.opacity(0.85))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Spacer()
+            ScrollView {
+                Text(entry.text)
+                    .font(Theme.bodyText)
+                    .foregroundStyle(Theme.textDark.opacity(0.85))
+                    .wrapping()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .padding()
     }

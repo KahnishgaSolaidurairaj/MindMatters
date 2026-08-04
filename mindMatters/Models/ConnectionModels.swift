@@ -102,48 +102,48 @@ struct StreakReward: Identifiable, Hashable {
 enum ConnectionCatalog {
     static let discoverableUsers: [DiscoverableUser] = [
         DiscoverableUser(
-            name: "Guest user1",
-            username: "guest1",
+            name: "Kahnishga Solaidurairaj",
+            username: "KS",
             major: "Computer Science",
-            hobbies: ["Running", "Photography"],
+            hobbies: ["Running", "Crocheting"],
             focusedPriority: .academicGrowth,
             bio: "Building habits one sprint at a time.",
             matchScore: 92
         ),
         DiscoverableUser(
-            name: "Guest user2",
-            username: "guest2",
-            major: "Psychology",
+            name: "Lavanya Vats",
+            username: "LV",
+            major: "Neuroscience",
             hobbies: ["Yoga", "Cooking"],
             focusedPriority: .physicalWellness,
-            bio: "Prioritizing mental health and movement.",
+            bio: "Prioritizing movement and balance.",
             matchScore: 88
         ),
         DiscoverableUser(
-            name: "Guest user3",
-            username: "guest3",
-            major: "Finance",
+            name: "Sneha Sharma",
+            username: "SS",
+            major: "Data Science",
             hobbies: ["Hiking", "Budgeting"],
             focusedPriority: .financialGrowth,
             bio: "Saving smart, living well.",
             matchScore: 85
         ),
         DiscoverableUser(
-            name: "guest user4",
-            username: "guest4",
-            major: "Biology",
+            name: "Amaani Ziauddin",
+            username: "AZ",
+            major: "Psycology",
             hobbies: ["Study groups", "Coffee"],
             focusedPriority: .socialGrowth,
             bio: "Love connecting with classmates.",
             matchScore: 79
         ),
         DiscoverableUser(
-            name: "Guest user5",
-            username: "guest5",
-            major: "Computer Science",
+            name: "Ian Aguilar",
+            username: "IA",
+            major: "Mechanical Engineering",
             hobbies: ["Gaming", "Reading"],
             focusedPriority: .academicGrowth,
-            bio: "CS major looking for accountability buddies.",
+            bio: "Looking for accountability buddies.",
             matchScore: 95
         ),
     ]
@@ -189,7 +189,7 @@ enum ConnectionCatalog {
             goal: 1
         ),
         CoOpActivity(
-            title: "Running group — 20 miles today",
+            title: "Running group - 20 miles today",
             detail: "Collectively log 20 miles as a group today.",
             mode: .group,
             participantCount: 4,

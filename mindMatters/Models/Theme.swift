@@ -15,3 +15,11 @@ enum Theme {
     static var linkText: Font { .body.weight(.medium) }
     static var buttonText: Font { .headline }
 }
+
+extension Text {
+    /// Wraps onto additional lines instead of truncating with an ellipsis.
+    func wrapping(_ alignment: TextAlignment = .leading) -> some View {
+        multilineTextAlignment(alignment)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}

@@ -19,7 +19,8 @@ struct JournalReflectionView: View {
                 Text(task.title)
                     .font(Theme.bodyText)
                     .foregroundStyle(Theme.textDark.opacity(0.75))
-                    .multilineTextAlignment(.center)
+                    .wrapping(.center)
+                    .frame(maxWidth: .infinity)
             }
 
             TextEditor(text: $reflectionText)

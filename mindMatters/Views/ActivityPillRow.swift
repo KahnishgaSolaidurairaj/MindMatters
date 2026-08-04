@@ -4,30 +4,50 @@ struct ActivityPillRow: View {
     let task: TaskItem
     let isDone: Bool
     let onToggle: () -> Void
+    var onKnowMore: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: 14) {
-                Image(systemName: task.category.symbol)
-                    .foregroundColor(Theme.teal)
-                    .frame(width: 34, height: 34)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+        HStack(spacing: 10) {
+            Button(action: onToggle) {
+                HStack(spacing: 14) {
+                    Image(systemName: task.category.symbol)
+                        .foregroundColor(Theme.teal)
+                        .frame(width: 34, height: 34)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                Text(task.title)
-                    .font(Theme.rowTitle)
-                    .foregroundColor(.white)
-                    .strikethrough(isDone)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(task.title)
+                            .font(Theme.rowTitle)
+                            .foregroundColor(.white)
+                            .wrapping()
+                            .strikethrough(isDone)
 
-                Spacer()
+                        Text(task.timeEstimateLabel)
+                            .font(Theme.supportingText)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(.white)
+                    Spacer()
+
+                    Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(.white)
+                }
+                .padding(12)
+                .background(Theme.sage)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
             }
-            .padding(12)
-            .background(Theme.sage)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .buttonStyle(.plain)
+
+            if let onKnowMore {
+                Button(action: onKnowMore) {
+                    Image(systemName: "info.circle")
+                        .font(.title3)
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
     }
 }

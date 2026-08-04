@@ -54,9 +54,9 @@ struct PlantState {
 
     mutating func reward(for category: TaskCategory) {
         switch category {
-        case .mentalHealth, .social:
+        case .physical, .social:
             sunlight += 1
-        case .finance, .academic:
+        case .financial, .academic:
             fertilizer += 1
         }
         water += 1

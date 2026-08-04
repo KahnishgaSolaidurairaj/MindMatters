@@ -61,11 +61,13 @@ struct ResourceOptionCardLabel: View {
                 Text(title)
                     .font(Theme.rowTitle)
                     .foregroundColor(Theme.textDark)
+                    .wrapping()
                 Text(subtitle)
                     .font(Theme.bodyText)
                     .foregroundColor(Theme.textDark.opacity(0.75))
-                    .multilineTextAlignment(.leading)
+                    .wrapping()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer()
             Image(systemName: "chevron.right")
                 .foregroundColor(Theme.textDark.opacity(0.4))
@@ -92,9 +94,11 @@ struct ResourceListView: View {
                             Text(resource.title)
                                 .font(Theme.rowTitle)
                                 .foregroundColor(Theme.textDark)
+                                .wrapping()
                             Text(resource.detail)
                                 .font(Theme.bodyText)
                                 .foregroundColor(Theme.textDark.opacity(0.75))
+                                .wrapping()
 
                             if let phone = resource.phone {
                                 Label(phone, systemImage: "phone.fill")
@@ -102,9 +106,19 @@ struct ResourceListView: View {
                                     .foregroundColor(Theme.teal)
                             }
                             if let location = resource.location {
-                                Label(location, systemImage: "mappin.and.ellipse")
-                                    .font(Theme.bodyText)
-                                    .foregroundColor(Theme.teal)
+                                if let mapsQuery = resource.mapsDirectionsQuery,
+                                   let mapsURL = MapsDirectionsLink.url(for: mapsQuery) {
+                                    Link(destination: mapsURL) {
+                                        Label(location, systemImage: "mappin.and.ellipse")
+                                            .font(Theme.bodyText)
+                                            .foregroundColor(Theme.teal)
+                                            .underline()
+                                    }
+                                } else {
+                                    Label(location, systemImage: "mappin.and.ellipse")
+                                        .font(Theme.bodyText)
+                                        .foregroundColor(Theme.teal)
+                                }
                             }
                         }
                         .padding()
@@ -118,5 +132,15 @@ struct ResourceListView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Builds Apple Maps directions URLs for campus resource addresses.
+enum MapsDirectionsLink {
+    /// Returns an Apple Maps URL that opens directions to the given address query.
+    static func url(for addressQuery: String) -> URL? {
+        var components = URLComponents(string: "http://maps.apple.com/")
+        components?.queryItems = [URLQueryItem(name: "daddr", value: addressQuery)]
+        return components?.url
     }
 }

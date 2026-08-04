@@ -33,6 +33,7 @@ final class AppState: ObservableObject {
     @Published var categoryPreferences: [CategoryPreference] = TaskCategory.allCases.map {
         CategoryPreference(category: $0)
     }
+    @Published var intakeResponses: [IntakeTaskResponse] = []
     @Published var likedTasks: [TaskItem] = []
     @Published var dailyActivities: [TaskItem] = []
     @Published var completedTaskIDs: Set<UUID> = []
@@ -71,9 +72,13 @@ final class AppState: ObservableObject {
     @Published var showJournalReflection: Bool = false
     @Published var pendingJournalTask: TaskItem?
     @Published var showConfetti: Bool = false
+    @Published var showWateringCelebration: Bool = false
+    @Published var wateringCelebrationToken: Int = 0
     @Published var plantGrowthPulse: Bool = false
     @Published var highlightEndDay: Bool = false
     @Published var taskCompletionCount: Int = 0
+    @Published var showMotivationPopup: Bool = false
+    @Published var motivationMessage: String = ""
 
     @Published private(set) var completedCountByPriority: [GardenPriority: Int] = {
         Dictionary(uniqueKeysWithValues: GardenPriority.allCases.map { ($0, 0) })
@@ -118,6 +123,14 @@ final class AppState: ObservableObject {
     }
 
     var greenhouseSceneAsset: String {
+        if plantHealthScore <= 50 {
+            return GardenCatalog.neglectedGreenhouse
+        }
+
+        if totalCompletedTasks == 0 && growthDaysOnCurrentPlant == 0 {
+            return GardenCatalog.seedGreenhouse
+        }
+
         let profiles = gardenProfiles
         let neglectedCount = profiles.filter { $0.progress == 0 }.count
         let progressValues = profiles.map(\.progress)
@@ -125,18 +138,6 @@ final class AppState: ObservableObject {
             ? 0
             : progressValues.reduce(0, +) / progressValues.count
         let spread = (progressValues.max() ?? 0) - (progressValues.min() ?? 0)
-
-        if totalCompletedTasks == 0 && growthDaysOnCurrentPlant == 0 {
-            return GardenCatalog.starterGreenhouse
-        }
-
-        if !isPlantHealthy || (neglectedCount >= 2 && currentStreak < 3) {
-            return GardenCatalog.strugglingGreenhouse
-        }
-
-        if spread >= 50 && averageProgress < 40 {
-            return GardenCatalog.strugglingGreenhouse
-        }
 
         let hasStrongStreak = currentStreak >= 5
         let hasFullWeeklyGrowth = growthDaysOnCurrentPlant >= 7
@@ -147,27 +148,29 @@ final class AppState: ObservableObject {
             return GardenCatalog.flourishingGreenhouse
         }
 
-        if growthDaysOnCurrentPlant <= 2 && averageProgress < 25 {
-            return GardenCatalog.earlyStreakGreenhouse
-        }
-
         if growthDaysOnCurrentPlant >= 3 || averageProgress >= 20 {
-            return GardenCatalog.growingGreenhouse
+            return GardenCatalog.secondGrowthGreenhouse
         }
 
-        return GardenCatalog.starterGreenhouse
+        if growthDaysOnCurrentPlant >= 1 || totalCompletedTasks > 0 {
+            return GardenCatalog.firstGrowthGreenhouse
+        }
+
+        return GardenCatalog.seedGreenhouse
     }
 
     var greenhouseSceneDescription: String {
         switch greenhouseSceneAsset {
         case GardenCatalog.flourishingGreenhouse:
             return "Your greenhouse is thriving."
-        case GardenCatalog.strugglingGreenhouse:
-            return streakBroken ? "Plant health needs care." : "Some priorities need attention."
-        case GardenCatalog.earlyStreakGreenhouse:
-            return "Your plant is growing."
-        case GardenCatalog.growingGreenhouse:
+        case GardenCatalog.neglectedGreenhouse:
+            return "Your greenhouse needs care — plant health is low."
+        case GardenCatalog.firstGrowthGreenhouse:
+            return "Early sprouts are appearing."
+        case GardenCatalog.secondGrowthGreenhouse:
             return "Steady progress — keep it up."
+        case GardenCatalog.seedGreenhouse:
+            return "Complete tasks to plant your first seed."
         default:
             return "Complete tasks to grow. Check in daily for health."
         }
@@ -177,6 +180,71 @@ final class AppState: ObservableObject {
         let values = gardenProfiles.map(\.progress)
         guard !values.isEmpty else { return 0 }
         return values.reduce(0, +) / values.count
+    }
+
+    /// Weekly priority snapshots for comparing greenhouse balance over time.
+    func weeklyPriorityBreakdowns(maxWeeks: Int = 4) -> [WeeklyPriorityBreakdown] {
+        (0..<maxWeeks).compactMap { weeksBack in
+            breakdown(forWeeksBack: weeksBack)
+        }
+    }
+
+    /// Builds a priority pie breakdown for a calendar week relative to today.
+    func breakdown(forWeeksBack weeksBack: Int) -> WeeklyPriorityBreakdown? {
+        let calendar = Calendar.current
+        guard let anchorDate = calendar.date(byAdding: .weekOfYear, value: -weeksBack, to: Date()),
+              let weekInterval = calendar.dateInterval(of: .weekOfYear, for: anchorDate) else {
+            return nil
+        }
+
+        var counts = Dictionary(uniqueKeysWithValues: GardenPriority.allCases.map { ($0, 0) })
+
+        for record in activityHistory where weekInterval.contains(record.date) {
+            for task in record.completedTasks {
+                let priority = GardenPriority.from(taskCategory: task.category)
+                counts[priority, default: 0] += 1
+            }
+        }
+
+        if weeksBack == 0 {
+            let todayAlreadySaved = activityHistory.contains {
+                calendar.isDate($0.date, inSameDayAs: Date())
+            }
+            if !todayAlreadySaved {
+                for task in dailyActivities where completedTaskIDs.contains(task.id) {
+                    let priority = GardenPriority.from(taskCategory: task.category)
+                    counts[priority, default: 0] += 1
+                }
+            }
+        }
+
+        let title: String
+        switch weeksBack {
+        case 0: title = "This Week"
+        case 1: title = "Last Week"
+        default: title = "\(weeksBack) Weeks Ago"
+        }
+
+        let weekID = calendar.component(.weekOfYear, from: anchorDate)
+        let year = calendar.component(.yearForWeekOfYear, from: anchorDate)
+
+        return WeeklyPriorityBreakdown(
+            id: "\(year)-W\(weekID)",
+            title: title,
+            taskCounts: counts,
+            percentages: priorityPercentages(from: counts)
+        )
+    }
+
+    private func priorityPercentages(from counts: [GardenPriority: Int]) -> [GardenPriority: Int] {
+        let total = counts.values.reduce(0, +)
+        guard total > 0 else {
+            return Dictionary(uniqueKeysWithValues: GardenPriority.allCases.map { ($0, 0) })
+        }
+
+        return Dictionary(uniqueKeysWithValues: counts.map { priority, count in
+            (priority, Int((Double(count) / Double(total) * 100).rounded()))
+        })
     }
 
     /// Task-driven growth stage with same-day micro progress.
@@ -298,10 +366,24 @@ final class AppState: ObservableObject {
         stage = .intake
     }
 
-    func finishIntake() {
+    func finishIntake(from responses: [IntakeTaskResponse]) {
+        intakeResponses = responses
+        categoryPreferences = CategoryPreference.from(responses: responses)
+        likedTasks = responses.compactMap { response in
+            guard !response.skipped, let rank = response.rank, rank >= 4 else { return nil }
+            return response.task
+        }
+        dislikedTasks = responses.compactMap { response in
+            guard !response.skipped, let rank = response.rank, rank <= 2 else { return nil }
+            return response.task
+        }
         dailyActivities = TaskDatabase.recommend(basedOn: categoryPreferences, excluding: [], count: TaskDatabase.dailyTaskCount)
         focusedPriority = topCategoryPreference
         stage = .choosePlant
+    }
+
+    func finishIntake() {
+        finishIntake(from: intakeResponses)
     }
 
     func applyPriorityPlantMapping(_ mapping: [GardenPriority: PlantKind]) {
@@ -351,6 +433,25 @@ final class AppState: ObservableObject {
         showPlantingAfterReplacement = false
         if stage == .planting {
             stage = .home
+        }
+    }
+
+    /// Shows a motivational pop-up when the app opens or returns to the foreground.
+    func presentMotivationPopup() {
+        /*
+        guard stage == .home else { return }
+        guard !showStreakPopup, !streakBroken, !showJournalReflection, !showWeeklyPlantPicker else { return }
+
+        motivationMessage = MotivationMessages.random()
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+            showMotivationPopup = true
+        }
+        */
+    }
+
+    func dismissMotivationPopup() {
+        withAnimation(.easeOut(duration: 0.25)) {
+            showMotivationPopup = false
         }
     }
 
@@ -411,6 +512,7 @@ final class AppState: ObservableObject {
             taskCompletionCount += 1
             pendingJournalTask = task
             showJournalReflection = true
+            triggerWateringCelebration()
             triggerPlantGrowthFeedback()
         }
     }
@@ -484,14 +586,22 @@ final class AppState: ObservableObject {
             count: TaskDatabase.dailyTaskCount
         )
         if let redemption = redemptionTask {
-            picks = Array(picks.prefix(TaskDatabase.dailyTaskCount - 1)) + [redemption]
+            picks.removeAll { $0.id == redemption.id }
+            picks.append(redemption)
+            if picks.count > TaskDatabase.dailyTaskCount {
+                picks = Array(picks.prefix(TaskDatabase.dailyTaskCount))
+            }
+            picks = TaskDatabase.ensurePrimaryCategoryCoverage(
+                in: picks,
+                count: TaskDatabase.dailyTaskCount
+            )
         }
         dailyActivities = picks
     }
 
     private var topCategoryPreference: GardenPriority {
         let top = categoryPreferences.max { $0.combinedScore < $1.combinedScore }
-        return GardenPriority.from(taskCategory: top?.category ?? .mentalHealth)
+        return GardenPriority.from(taskCategory: top?.category ?? .physical)
     }
 
     private func applyStreakReward(for streakDay: Int) {
@@ -499,6 +609,15 @@ final class AppState: ObservableObject {
         guard !earnedRewards.contains(where: { $0.streakDay == streakDay }) else { return }
         earnedRewards.append(reward)
         energyPoints += reward.energyBonus
+    }
+
+    /// Presents the watering-can celebration overlay after each completed task.
+    func triggerWateringCelebration() {
+        wateringCelebrationToken += 1
+        showWateringCelebration = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.showWateringCelebration = false
+        }
     }
 
     private func triggerPlantGrowthFeedback() {
@@ -531,9 +650,22 @@ final class AppState: ObservableObject {
         completedTaskIDs.count
     }
 
-    /// True when the user has finished enough tasks to count toward today's streak.
+    /// Categories with at least one completed task today.
+    var completedCategoriesToday: Set<TaskCategory> {
+        Set(
+            dailyActivities
+                .filter { completedTaskIDs.contains($0.id) }
+                .map(\.category)
+        )
+    }
+
+    /// True when the user completed at least one task in each category today.
     var metStreakGoalToday: Bool {
-        completedTasksTodayCount >= TaskDatabase.minimumTasksForStreak
+        TaskCategory.allCases.allSatisfy { completedCategoriesToday.contains($0) }
+    }
+
+    func hasCompletedCategory(_ category: TaskCategory) -> Bool {
+        completedCategoriesToday.contains(category)
     }
 
     var allDoneToday: Bool {

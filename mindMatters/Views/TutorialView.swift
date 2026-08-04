@@ -5,7 +5,7 @@ struct TutorialView: View {
     @State private var pageIndex = 0
 
     private let pages: [(icon: String, title: String, body: String)] = [
-        ("checklist", "Daily Tasks", "Get 3 short tasks each day across social, academic, financial, and wellness areas."),
+        ("checklist", "Daily Tasks", "Get 3 short tasks each day across social, academic, financial, and physical areas."),
         ("flame.fill", "Plant of the Week", "Your weekly plant grows one stage for each day you finish your streak."),
         ("leaf.circle.fill", "Your Garden", "Four priority plants show where your completed tasks are focused."),
         ("checkmark.circle.fill", "Check Them Off", "Mark tasks done as you go. Small wins add up."),

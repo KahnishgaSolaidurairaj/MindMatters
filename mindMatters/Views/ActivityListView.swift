@@ -54,6 +54,11 @@ struct ActivityListView: View {
                 )
                 .padding(.bottom, 12)
             }
+
+            if appState.showWateringCelebration {
+                WateringCelebrationView()
+                    .id(appState.wateringCelebrationToken)
+            }
         }
         .sheet(isPresented: $appState.showStreakPopup) {
             StreakPopupView().environmentObject(appState)
